@@ -1,0 +1,12 @@
+upload student photo
+student id
+LRN 
+Enrollment date 
+Lastname, first name, middle name
+date of birth
+Age
+place of birth 
+sex 
+nationality
+civil status
+guardian information
