@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Search, ChevronLeft, ChevronRight, Plus, KeyRound } from 'lucide-react';
+import { Trash2, Search, ChevronLeft, ChevronRight, Plus, KeyRound, CalendarDays, ToggleLeft, ToggleRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getAccounts, createAccount, deleteAccount, resetAccountPassword } from '../../services/api';
+import { getAccounts, createAccount, deleteAccount, resetAccountPassword, getAcademicCalendar, updateAcademicCalendar } from '../../services/api';
 import { formatDate, getErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -17,6 +17,12 @@ const roleBadge = (role) => {
   };
   return colors[role] || 'bg-gray-100 text-gray-700';
 };
+
+const CURRENT_YEAR = new Date().getFullYear();
+const SCHOOL_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
+  const y = CURRENT_YEAR - 1 + i;
+  return `${y}-${y + 1}`;
+});
 
 export default function Settings() {
   const { user: currentUser } = useAuth();
@@ -38,6 +44,17 @@ export default function Settings() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const perPage = 10;
 
+  // Academic Calendar
+  const [calendarLoading, setCalendarLoading] = useState(true);
+  const [calendarSaving, setCalendarSaving] = useState(false);
+  const [calendar, setCalendar] = useState({
+    school_year: `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`,
+    semester: '1st',
+    enrollment_start: '',
+    enrollment_end: '',
+    is_open: false,
+  });
+
   const fetchData = () => {
     setLoading(true);
     const params = { page, per_page: perPage };
@@ -52,6 +69,45 @@ export default function Settings() {
   };
 
   useEffect(() => { fetchData(); }, [page, roleFilter, search]);
+
+  useEffect(() => {
+    setCalendarLoading(true);
+    getAcademicCalendar()
+      .then((res) => {
+        const d = res.data;
+        setCalendar({
+          school_year: d.school_year,
+          semester: d.semester,
+          enrollment_start: d.enrollment_start || '',
+          enrollment_end: d.enrollment_end || '',
+          is_open: d.is_open,
+        });
+      })
+      .catch(() => {
+        // No calendar set yet — keep defaults
+      })
+      .finally(() => setCalendarLoading(false));
+  }, []);
+
+  const handleCalendarSave = async (e) => {
+    e.preventDefault();
+    setCalendarSaving(true);
+    try {
+      const payload = {
+        school_year: calendar.school_year,
+        semester: calendar.semester,
+        enrollment_start: calendar.enrollment_start || null,
+        enrollment_end: calendar.enrollment_end || null,
+        is_open: calendar.is_open,
+      };
+      await updateAcademicCalendar(payload);
+      toast.success('Academic calendar saved');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setCalendarSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -121,7 +177,103 @@ export default function Settings() {
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
-        <p className="text-gray-500">Manage user accounts</p>
+        <p className="text-gray-500">Manage academic calendar and user accounts</p>
+      </div>
+
+      {/* Academic Calendar */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <CalendarDays size={20} className="text-emerald-600" />
+          <h2 className="text-lg font-semibold text-gray-800">Academic Calendar</h2>
+        </div>
+
+        {calendarLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <form onSubmit={handleCalendarSave} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">School Year</label>
+                <select
+                  value={calendar.school_year}
+                  onChange={(e) => setCalendar({ ...calendar, school_year: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                >
+                  {SCHOOL_YEAR_OPTIONS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                <select
+                  value={calendar.semester}
+                  onChange={(e) => setCalendar({ ...calendar, semester: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                >
+                  <option value="1st">1st Semester</option>
+                  <option value="2nd">2nd Semester</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Start Date</label>
+                <input
+                  type="date"
+                  value={calendar.enrollment_start}
+                  onChange={(e) => setCalendar({ ...calendar, enrollment_start: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment End Date</label>
+                <input
+                  type="date"
+                  value={calendar.enrollment_end}
+                  onChange={(e) => setCalendar({ ...calendar, enrollment_end: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Open / Closed toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Enrollment Status</p>
+                <p className="text-xs text-gray-500">Toggle to open or close student registration</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendar({ ...calendar, is_open: !calendar.is_open })}
+                className="flex items-center gap-2 focus:outline-none"
+              >
+                {calendar.is_open ? (
+                  <>
+                    <ToggleRight size={32} className="text-emerald-500" />
+                    <span className="text-sm font-semibold text-emerald-600">Open</span>
+                  </>
+                ) : (
+                  <>
+                    <ToggleLeft size={32} className="text-gray-400" />
+                    <span className="text-sm font-semibold text-gray-500">Closed</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={calendarSaving}
+                className="px-5 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+              >
+                {calendarSaving ? 'Saving...' : 'Save Calendar'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Filters + Create */}

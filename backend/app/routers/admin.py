@@ -1,10 +1,12 @@
 """Admin endpoints — student management, approvals, dashboard, account management."""
 
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -14,11 +16,36 @@ from app.auth.dependencies import require_role
 from app.auth.jwt_handler import hash_password
 from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus, EnrollmentType
+from app.models.academic_calendar import AcademicCalendar
 from app.schemas.student import StudentResponse, StudentListResponse, EnrollmentApproval
 from app.schemas.user import AccountCreate, AccountListResponse, UserResponse, PasswordReset
 from app.schemas.common import MessageResponse, DashboardStats
 from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
+
+
+# ── Academic Calendar Schemas ────────────────────────────────────────
+
+
+class AcademicCalendarUpdate(BaseModel):
+    school_year: str
+    semester: str
+    enrollment_start: Optional[date] = None
+    enrollment_end: Optional[date] = None
+    is_open: bool
+
+
+class AcademicCalendarResponse(BaseModel):
+    id: int
+    school_year: str
+    semester: str
+    enrollment_start: Optional[date]
+    enrollment_end: Optional[date]
+    is_open: bool
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -429,3 +456,50 @@ def delete_account(
     db.delete(user)
     db.commit()
     return MessageResponse(message="Account deleted successfully")
+
+
+# ── Academic Calendar ────────────────────────────────────────────────
+
+
+@router.get("/academic-calendar", response_model=AcademicCalendarResponse)
+def get_academic_calendar(
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Get the current academic calendar settings."""
+    calendar = db.query(AcademicCalendar).first()
+    if not calendar:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No academic calendar set yet")
+    return calendar
+
+
+@router.put("/academic-calendar", response_model=AcademicCalendarResponse)
+def upsert_academic_calendar(
+    data: AcademicCalendarUpdate,
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Create or update the academic calendar. Only one record is kept."""
+    now = datetime.now(timezone.utc)
+    calendar = db.query(AcademicCalendar).first()
+    if calendar:
+        calendar.school_year = data.school_year
+        calendar.semester = data.semester
+        calendar.enrollment_start = data.enrollment_start
+        calendar.enrollment_end = data.enrollment_end
+        calendar.is_open = data.is_open
+        calendar.updated_at = now
+    else:
+        calendar = AcademicCalendar(
+            school_year=data.school_year,
+            semester=data.semester,
+            enrollment_start=data.enrollment_start,
+            enrollment_end=data.enrollment_end,
+            is_open=data.is_open,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(calendar)
+    db.commit()
+    db.refresh(calendar)
+    return calendar

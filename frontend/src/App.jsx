@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
+import StudentSettings from './pages/student/StudentSettings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PendingStudents from './pages/admin/PendingStudents';
 import AllStudents from './pages/admin/AllStudents';
@@ -35,6 +36,7 @@ export default function App() {
       {/* Student */}
       <Route path="/student/dashboard" element={<PrivateRoute roles={['student']}><StudentDashboard /></PrivateRoute>} />
       <Route path="/student/profile" element={<PrivateRoute roles={['student']}><StudentProfile /></PrivateRoute>} />
+      <Route path="/student/settings" element={<PrivateRoute roles={['student']}><StudentSettings /></PrivateRoute>} />
 
       {/* Admin */}
       <Route path="/admin/dashboard" element={<PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>} />

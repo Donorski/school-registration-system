@@ -9,6 +9,69 @@ import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
 import { getMyProfile, getMySubjects, uploadPaymentReceipt } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 
+// ── Enrollment Stepper ──────────────────────────────────────────────────────
+const STEPS = ['Apply', 'Approved', 'Pay', 'Verified', 'Enrolled'];
+
+function EnrollmentStepper({ profile, subjects }) {
+  const paymentStatus = profile?.payment_status || 'unpaid';
+
+  const completed = [
+    !!profile?.first_name,                        // Step 1: Apply
+    profile?.status === 'approved',               // Step 2: Approved
+    paymentStatus !== 'unpaid',                   // Step 3: Pay
+    paymentStatus === 'verified',                 // Step 4: Verified
+    subjects.length > 0,                          // Step 5: Enrolled
+  ];
+
+  // Active step = last completed + 1 (capped at last step)
+  const activeIndex = Math.min(
+    completed.lastIndexOf(true) + 1,
+    STEPS.length - 1
+  );
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border p-5 mb-6">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Enrollment Progress</h2>
+      <div className="flex items-center">
+        {STEPS.map((label, i) => {
+          const done = completed[i];
+          const active = !done && i === activeIndex;
+          return (
+            <div key={label} className="flex items-center flex-1 last:flex-none">
+              {/* Circle */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
+                    ${done
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : active
+                        ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+                        : 'border-gray-200 text-gray-400 bg-white'}`}
+                >
+                  {done ? <CheckCircle size={16} /> : i + 1}
+                </div>
+                <span
+                  className={`mt-1.5 text-xs font-medium text-center leading-tight
+                    ${done ? 'text-emerald-600' : active ? 'text-emerald-500' : 'text-gray-400'}`}
+                >
+                  {label}
+                </span>
+              </div>
+              {/* Connector line */}
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-2 mb-5 rounded transition-all
+                    ${completed[i] ? 'bg-emerald-400' : 'bg-gray-200'}`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -93,6 +156,7 @@ export default function StudentDashboard() {
 
   const isApproved = profile?.status === 'approved';
   const paymentStatus = profile?.payment_status || 'unpaid';
+  const totalUnits = subjects.reduce((sum, s) => sum + s.units, 0);
 
   return (
     <DashboardLayout>
@@ -102,6 +166,9 @@ export default function StudentDashboard() {
         </h1>
         <p className="text-gray-500">Here's your registration overview</p>
       </div>
+
+      {/* Enrollment Progress Stepper */}
+      <EnrollmentStepper profile={profile} subjects={subjects} />
 
       {/* Payment Flow Banners (only for approved students) */}
       {isApproved && paymentStatus === 'unpaid' && (
@@ -234,11 +301,32 @@ export default function StudentDashboard() {
               </button>
             )}
           </div>
+
+          {/* Stats bar */}
+          {subjects.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full border border-emerald-200">
+                <BookOpen size={12} />
+                {subjects.length} Subject{subjects.length !== 1 ? 's' : ''}
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1 rounded-full border border-blue-200">
+                <Hash size={12} />
+                {totalUnits} Total Unit{totalUnits !== 1 ? 's' : ''}
+              </span>
+              {profile?.semester && (
+                <span className="inline-flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium px-3 py-1 rounded-full border border-gray-200">
+                  <Clock size={12} />
+                  {profile.semester}
+                </span>
+              )}
+            </div>
+          )}
+
           {subjects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <BookOpen size={40} className="mx-auto mb-2" />
-              <p>No subjects enrolled yet</p>
-              <p className="text-xs mt-1">Subjects will appear here once assigned by the registrar</p>
+            <div className="bg-emerald-50 rounded-xl text-center py-10 px-6">
+              <BookOpen size={40} className="mx-auto mb-3 text-emerald-300" />
+              <p className="font-medium text-gray-600">No subjects enrolled yet</p>
+              <p className="text-sm text-gray-400 mt-1">Subjects will appear here once assigned by the registrar</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -263,7 +351,7 @@ export default function StudentDashboard() {
                 </tbody>
               </table>
               <div className="mt-3 text-right text-sm text-gray-500">
-                Total Units: {subjects.reduce((sum, s) => sum + s.units, 0)}
+                Total Units: {totalUnits}
               </div>
             </div>
           )}

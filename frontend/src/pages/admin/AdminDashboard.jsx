@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, ClipboardList, CheckCircle, XCircle } from 'lucide-react';
+import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from 'recharts';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonCard } from '../../components/SkeletonLoader';
 import { getDashboardStats } from '../../services/api';
 
 /** Animates a number from 0 to `target` over `duration` ms using ease-out cubic. */
@@ -19,7 +19,7 @@ function useCountUp(target, duration = 900) {
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.round(eased * target));
       if (progress < 1) rafRef.current = requestAnimationFrame(animate);
     };
@@ -56,24 +56,13 @@ function StatCard({ label, value, icon: Icon, iconClass, delay }) {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   useEffect(() => {
     getDashboardStats()
       .then((res) => setStats(res.data))
       .finally(() => setLoading(false));
   }, []);
-
-  if (loading) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
-
-  const statusData = [
-    { name: 'Pending', value: stats?.pending_students || 0 },
-    { name: 'Approved', value: stats?.approved_students || 0 },
-    { name: 'Denied', value: stats?.denied_students || 0 },
-  ].filter((d) => d.value > 0);
-
-  const strandData = toChartData(stats?.by_strand);
-  const gradeData = toChartData(stats?.by_grade_level);
-  const enrollmentTypeData = toChartData(stats?.by_enrollment_type);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload?.length) {
@@ -90,6 +79,8 @@ export default function AdminDashboard() {
   const renderPieLabel = ({ name, percent }) =>
     percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : '';
 
+  const pendingCount = stats?.pending_students ?? 0;
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -97,7 +88,31 @@ export default function AdminDashboard() {
         <p className="text-gray-500">Overview of student registrations</p>
       </div>
 
-      {/* Quick Actions — at the top */}
+      {/* Pending alert banner */}
+      {!loading && pendingCount > 0 && !alertDismissed && (
+        <div className="mb-6 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl animate-slide-up">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+            <p className="text-sm">
+              You have{' '}
+              <span className="font-bold">{pendingCount}</span>{' '}
+              pending application{pendingCount !== 1 ? 's' : ''} awaiting review.{' '}
+              <Link to="/admin/pending" className="underline font-medium hover:text-amber-900">
+                Review now
+              </Link>
+            </p>
+          </div>
+          <button
+            onClick={() => setAlertDismissed(true)}
+            title="Dismiss"
+            className="p-1 hover:bg-amber-100 rounded-lg transition shrink-0"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Link
           to="/admin/pending"
@@ -131,138 +146,150 @@ export default function AdminDashboard() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Students" value={stats?.total_students ?? 0}   icon={Users}         iconClass="text-emerald-600" delay="0ms"   />
-        <StatCard label="Pending"        value={stats?.pending_students ?? 0}  icon={ClipboardList} iconClass="text-yellow-500"  delay="80ms"  />
-        <StatCard label="Approved"       value={stats?.approved_students ?? 0} icon={CheckCircle}   iconClass="text-green-500"   delay="160ms" />
-        <StatCard label="Denied"         value={stats?.denied_students ?? 0}   icon={XCircle}       iconClass="text-red-500"     delay="240ms" />
+        {loading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <StatCard label="Total Students" value={stats?.total_students ?? 0}   icon={Users}         iconClass="text-emerald-600" delay="0ms"   />
+            <StatCard label="Pending"        value={stats?.pending_students ?? 0}  icon={ClipboardList} iconClass="text-yellow-500"  delay="80ms"  />
+            <StatCard label="Approved"       value={stats?.approved_students ?? 0} icon={CheckCircle}   iconClass="text-green-500"   delay="160ms" />
+            <StatCard label="Denied"         value={stats?.denied_students ?? 0}   icon={XCircle}       iconClass="text-red-500"     delay="240ms" />
+          </>
+        )}
       </div>
 
-      {/* Row 1: Status Pie + Strand Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Application Status Pie Chart */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Application Status</h2>
-          {statusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  innerRadius={50}
-                  dataKey="value"
-                  label={renderPieLabel}
-                  labelLine={false}
-                  isAnimationActive
-                  animationBegin={300}
-                  animationDuration={900}
-                  animationEasing="ease-out"
-                >
-                  {statusData.map((_, i) => (
-                    <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-          )}
-        </div>
+      {!loading && (
+        <>
+          {/* Row 1: Status Pie + Strand Bar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Application Status</h2>
+              {(() => {
+                const statusData = [
+                  { name: 'Pending', value: stats?.pending_students || 0 },
+                  { name: 'Approved', value: stats?.approved_students || 0 },
+                  { name: 'Denied', value: stats?.denied_students || 0 },
+                ].filter((d) => d.value > 0);
+                return statusData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        innerRadius={50}
+                        dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
+                        isAnimationActive
+                        animationBegin={300}
+                        animationDuration={900}
+                        animationEasing="ease-out"
+                      >
+                        {statusData.map((_, i) => (
+                          <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
 
-        {/* Students by Strand Bar Chart */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Students by Strand</h2>
-          {strandData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={strandData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="value"
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive
-                  animationBegin={300}
-                  animationDuration={700}
-                  animationEasing="ease-out"
-                >
-                  {strandData.map((_, i) => (
-                    <Cell key={i} fill={STRAND_COLORS[i % STRAND_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-          )}
-        </div>
-      </div>
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Students by Strand</h2>
+              {(() => {
+                const strandData = toChartData(stats?.by_strand);
+                return strandData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={strandData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out">
+                        {strandData.map((_, i) => (
+                          <Cell key={i} fill={STRAND_COLORS[i % STRAND_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+          </div>
 
-      {/* Row 2: Grade Level + Enrollment Type */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grade Level */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">By Grade Level</h2>
-          {gradeData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={gradeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="value"
-                  fill="#10b981"
-                  radius={[0, 6, 6, 0]}
-                  isAnimationActive
-                  animationBegin={300}
-                  animationDuration={700}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-          )}
-        </div>
+          {/* Row 2: Grade Level + Enrollment Type */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">By Grade Level</h2>
+              {(() => {
+                const gradeData = toChartData(stats?.by_grade_level);
+                return gradeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={gradeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
 
-        {/* Enrollment Type */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Enrollment Type</h2>
-          {enrollmentTypeData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={enrollmentTypeData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={40}
-                  dataKey="value"
-                  label={renderPieLabel}
-                  labelLine={false}
-                  isAnimationActive
-                  animationBegin={300}
-                  animationDuration={900}
-                  animationEasing="ease-out"
-                >
-                  {enrollmentTypeData.map((_, i) => (
-                    <Cell key={i} fill={ENROLLMENT_COLORS[i % ENROLLMENT_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-          )}
-        </div>
-      </div>
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Enrollment Type</h2>
+              {(() => {
+                const enrollmentTypeData = toChartData(stats?.by_enrollment_type);
+                return enrollmentTypeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie
+                        data={enrollmentTypeData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        innerRadius={40}
+                        dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
+                        isAnimationActive
+                        animationBegin={300}
+                        animationDuration={900}
+                        animationEasing="ease-out"
+                      >
+                        {enrollmentTypeData.map((_, i) => (
+                          <Cell key={i} fill={ENROLLMENT_COLORS[i % ENROLLMENT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

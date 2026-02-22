@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, Send, Loader2, Lock, AlertCircle, CheckCircle, Camera, User, Upload, FileText, Ticket, Search } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Lock, AlertCircle, CheckCircle, Camera, User, Upload, FileText, Ticket, Search, Plus, Trash2, BookOpen, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -32,6 +32,8 @@ export default function StudentProfile() {
   const [lookupId, setLookupId] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupDone, setLookupDone] = useState(false);
+  const [transfereeSubjects, setTransfereeSubjects] = useState([]);
+  const [showTransfereeModal, setShowTransfereeModal] = useState(false);
   const fileInputRef = useRef(null);
   const gradesInputRef = useRef(null);
   const voucherInputRef = useRef(null);
@@ -60,6 +62,7 @@ export default function StudentProfile() {
         setTransferCredentialPath(res.data.transfer_credential_path);
         setGoodMoralPath(res.data.good_moral_path);
         setEnrollmentType(res.data.enrollment_type || '');
+        setTransfereeSubjects(res.data.transferee_subjects || []);
         setHasSubmitted(!!res.data.first_name && !!res.data.last_name);
       })
       .finally(() => setLoading(false));
@@ -310,6 +313,20 @@ export default function StudentProfile() {
       }
     });
     setPendingData(payload);
+    if (data.enrollment_type === 'TRANSFEREE') {
+      setShowTransfereeModal(true);
+    } else {
+      setShowSubmitConfirm(true);
+    }
+  };
+
+  const handleTransfereeModalContinue = () => {
+    const hasValid = transfereeSubjects.some((s) => s.subject_name && s.subject_name.trim());
+    if (!hasValid) {
+      toast.error('Please add at least one subject with a name before continuing.');
+      return;
+    }
+    setShowTransfereeModal(false);
     setShowSubmitConfirm(true);
   };
 
@@ -318,7 +335,19 @@ export default function StudentProfile() {
     if (!pendingData) return;
     setSaving(true);
     try {
-      await updateMyProfile(pendingData);
+      const finalPayload = { ...pendingData };
+      if (pendingData.enrollment_type === 'TRANSFEREE' && transfereeSubjects.length > 0) {
+        finalPayload.transferee_subjects = transfereeSubjects
+          .filter((s) => s.subject_name && s.subject_name.trim())
+          .map((s) => ({
+            subject_name: s.subject_name || '',
+            subject_code: s.subject_code || '',
+            units: s.units || '',
+            grade: s.grade || '',
+            credit_status: s.credit_status || 'pending',
+          }));
+      }
+      await updateMyProfile(finalPayload);
       toast.success('Application submitted successfully');
       setStatus('pending');
       setHasSubmitted(true);
@@ -643,7 +672,7 @@ export default function StudentProfile() {
         )}
 
         {/* PSA Birth Certificate Upload */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="bg-white rounded-xl shadow-sm border p-6 md:col-span-2 lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">PSA Birth Certificate</h2>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -697,6 +726,62 @@ export default function StudentProfile() {
         </div>
       </div>
 
+      {/* Previous School Subjects — locked read-only view after submission */}
+      {isLocked && enrollmentType === 'TRANSFEREE' && transfereeSubjects.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen size={18} className="text-amber-600" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Previous School Subjects
+                <span className="ml-2 text-sm font-normal text-amber-600">(Transferee)</span>
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Subjects you submitted from your previous school. The registrar will determine which are credited.
+              </p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-2 font-medium pr-3">Subject Name</th>
+                  <th className="pb-2 font-medium pr-3">Subject Code</th>
+                  <th className="pb-2 font-medium pr-3">Units</th>
+                  <th className="pb-2 font-medium pr-3">Final Grade</th>
+                  <th className="pb-2 font-medium">Credit Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transfereeSubjects.map((subj, idx) => (
+                  <tr key={idx} className="border-b last:border-0">
+                    <td className="py-2 pr-3 font-medium">{subj.subject_name || '—'}</td>
+                    <td className="py-2 pr-3 text-gray-500">{subj.subject_code || '—'}</td>
+                    <td className="py-2 pr-3">{subj.units || '—'}</td>
+                    <td className="py-2 pr-3">{subj.grade || '—'}</td>
+                    <td className="py-2">
+                      {subj.credit_status === 'credited' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                          <CheckCircle size={11} /> Credited
+                        </span>
+                      ) : subj.credit_status === 'not_credited' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                          <AlertCircle size={11} /> Not Credited
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                          Pending Review
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Enrollment Type */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -715,17 +800,40 @@ export default function StudentProfile() {
 
           {/* Transferee Info Banner */}
           {enrollmentType === 'TRANSFEREE' && !isLocked && (
-            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-              <h3 className="text-sm font-semibold text-amber-800 mb-2">Transferee Requirements</h3>
-              <p className="text-xs text-amber-700 mb-2">
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+              <h3 className="text-sm font-semibold text-amber-800">Transferee Requirements</h3>
+              <p className="text-xs text-amber-700">
                 As a transferee from another school, please make sure to provide the following:
               </p>
               <ul className="text-xs text-amber-700 list-disc list-inside space-y-1">
+                <li><strong>Previous School Subjects</strong> (required) — click the button below to add them</li>
                 <li><strong>Last School Attended</strong> (required) — fill this in Section A below</li>
                 <li><strong>Transfer Credential / Form 137</strong> — upload below</li>
                 <li><strong>Good Moral Certificate</strong> — upload below</li>
                 <li><strong>Last School Grades / Report Card</strong> — upload in the documents section above</li>
               </ul>
+
+              {/* Subjects entry button */}
+              <div className="pt-1 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTransfereeModal(true)}
+                  className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                >
+                  <BookOpen size={15} />
+                  {transfereeSubjects.filter((s) => s.subject_name?.trim()).length > 0
+                    ? 'Edit Previous School Subjects'
+                    : 'Add Previous School Subjects'}
+                </button>
+                {transfereeSubjects.filter((s) => s.subject_name?.trim()).length > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium">
+                    <CheckCircle size={12} />
+                    {transfereeSubjects.filter((s) => s.subject_name?.trim()).length} subject{transfereeSubjects.filter((s) => s.subject_name?.trim()).length !== 1 ? 's' : ''} added
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-600 font-medium">No subjects added yet — required before submitting</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -891,6 +999,173 @@ export default function StudentProfile() {
         variant="success"
         loading={saving}
       />
+
+      {/* Transferee Subjects Modal */}
+      {showTransfereeModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-scale-in">
+
+            {/* Modal Header */}
+            <div className="flex items-start justify-between p-6 border-b shrink-0">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-amber-100 rounded-xl shrink-0">
+                  <BookOpen size={20} className="text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Previous School Subjects</h3>
+                  <p className="text-sm text-gray-500 mt-0.5 max-w-lg">
+                    Please list all the subjects you took at your previous school. The registrar will review them to determine which subjects can be credited toward your enrollment.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTransfereeModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-400 shrink-0 ml-4"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex-1">
+                  <AlertCircle size={15} className="shrink-0 text-amber-500" />
+                  <span>At least one subject with a name is required to proceed with your application.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTransfereeSubjects((prev) => [
+                    ...prev,
+                    { subject_name: '', subject_code: '', units: '', grade: '', credit_status: 'pending' },
+                  ])}
+                  className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-3 py-2 rounded-lg transition shrink-0"
+                >
+                  <Plus size={15} />
+                  Add Subject
+                </button>
+              </div>
+
+              {transfereeSubjects.length === 0 ? (
+                <div className="text-center py-14 bg-amber-50 rounded-xl border-2 border-dashed border-amber-200">
+                  <BookOpen size={40} className="mx-auto mb-3 text-amber-300" />
+                  <p className="text-gray-600 font-medium">No subjects added yet</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Click <strong>"Add Subject"</strong> above to list subjects from your previous school.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-gray-500 bg-gray-50">
+                        <th className="pb-3 pt-2 px-3 font-medium rounded-l-lg">
+                          Subject Name <span className="text-red-500">*</span>
+                        </th>
+                        <th className="pb-3 pt-2 px-2 font-medium">Subject Code</th>
+                        <th className="pb-3 pt-2 px-2 font-medium w-28">Units</th>
+                        <th className="pb-3 pt-2 px-2 font-medium w-32">Final Grade</th>
+                        <th className="pb-3 pt-2 px-2 font-medium w-10 rounded-r-lg"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transfereeSubjects.map((subj, idx) => (
+                        <tr key={idx} className="border-b last:border-0">
+                          <td className="py-2.5 px-3">
+                            <input
+                              type="text"
+                              value={subj.subject_name}
+                              onChange={(e) => {
+                                const updated = [...transfereeSubjects];
+                                updated[idx] = { ...updated[idx], subject_name: e.target.value };
+                                setTransfereeSubjects(updated);
+                              }}
+                              placeholder="e.g. General Mathematics"
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <input
+                              type="text"
+                              value={subj.subject_code}
+                              onChange={(e) => {
+                                const updated = [...transfereeSubjects];
+                                updated[idx] = { ...updated[idx], subject_code: e.target.value };
+                                setTransfereeSubjects(updated);
+                              }}
+                              placeholder="e.g. GENMATH"
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <input
+                              type="text"
+                              value={subj.units}
+                              onChange={(e) => {
+                                const updated = [...transfereeSubjects];
+                                updated[idx] = { ...updated[idx], units: e.target.value };
+                                setTransfereeSubjects(updated);
+                              }}
+                              placeholder="e.g. 3"
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <input
+                              type="text"
+                              value={subj.grade}
+                              onChange={(e) => {
+                                const updated = [...transfereeSubjects];
+                                updated[idx] = { ...updated[idx], grade: e.target.value };
+                                setTransfereeSubjects(updated);
+                              }}
+                              placeholder="e.g. 88"
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <button
+                              type="button"
+                              onClick={() => setTransfereeSubjects((prev) => prev.filter((_, i) => i !== idx))}
+                              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t shrink-0 bg-gray-50 rounded-b-2xl flex items-center justify-between">
+              <p className="text-xs text-gray-400">
+                {transfereeSubjects.filter((s) => s.subject_name?.trim()).length} subject{transfereeSubjects.filter((s) => s.subject_name?.trim()).length !== 1 ? 's' : ''} entered
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTransfereeModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Back to Form
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTransfereeModalContinue}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition"
+                >
+                  <Send size={15} />
+                  Continue to Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

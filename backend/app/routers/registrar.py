@@ -1,18 +1,23 @@
 """Registrar endpoints — subject CRUD, enrollment management, payment verification."""
 
+import io
+import os
+import zipfile
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.auth.dependencies import require_role
 from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus
 from app.models.subject import Subject
 from app.models.student_subject import StudentSubject
-from app.schemas.student import StudentResponse, StudentListResponse
+from app.schemas.student import StudentResponse, StudentListResponse, TransfereeCreditUpdate
 from app.schemas.subject import (
     SubjectCreate, SubjectUpdate, SubjectResponse,
     AssignSubject, UnassignSubject, BulkAssignSubjects,
@@ -69,6 +74,29 @@ def _subject_to_response(subject: Subject, db: Session) -> SubjectResponse:
         enrolled_count=enrolled_count,
         created_at=subject.created_at,
     )
+
+
+# --- Class List ---
+
+@router.get("/class-list", response_model=list[StudentResponse])
+def get_class_list(
+    strand: str,
+    grade_level: str,
+    semester: str | None = None,
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Return all officially enrolled students for a strand/grade, sorted A-Z by last name."""
+    query = db.query(Student).filter(
+        Student.status == StudentStatus.APPROVED,
+        Student.payment_status == "verified",
+        Student.strand == strand,
+        Student.grade_level_to_enroll == grade_level,
+    )
+    if semester:
+        query = query.filter(Student.semester == semester)
+    students = query.order_by(Student.last_name, Student.first_name).all()
+    return [_student_to_response(s) for s in students]
 
 
 # --- Approved Students ---
@@ -219,6 +247,61 @@ def get_student_complete_info(
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
     return _student_to_response(student)
+
+
+@router.get("/students/{student_id}/download-files")
+def download_student_files(
+    student_id: int,
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Bundle all uploaded files for a student into a ZIP and stream it back."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    # Named single-file fields
+    file_fields = {
+        "ID_Photo": student.student_photo_path,
+        "Grades": student.grades_path,
+        "Voucher": student.voucher_path,
+        "PSA_Birth_Certificate": student.psa_birth_cert_path,
+        "Transfer_Credential": student.transfer_credential_path,
+        "Good_Moral_Certificate": student.good_moral_path,
+        "Payment_Receipt": student.payment_receipt_path,
+    }
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for label, rel_path in file_fields.items():
+            if not rel_path:
+                continue
+            full_path = os.path.join(settings.UPLOAD_DIR, rel_path)
+            if os.path.isfile(full_path):
+                ext = os.path.splitext(rel_path)[1]
+                zf.write(full_path, f"{label}{ext}")
+
+        # Additional documents (stored as a JSON list of paths)
+        if student.documents_path:
+            for i, rel_path in enumerate(student.documents_path, start=1):
+                full_path = os.path.join(settings.UPLOAD_DIR, rel_path)
+                if os.path.isfile(full_path):
+                    ext = os.path.splitext(rel_path)[1]
+                    zf.write(full_path, f"Document_{i}{ext}")
+
+    zip_buffer.seek(0)
+
+    student_name = (
+        f"{student.first_name or ''}_{student.last_name or ''}".strip("_")
+        or f"Student_{student_id}"
+    )
+    filename = f"{student_name}_files.zip"
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # --- Subject CRUD ---
@@ -484,17 +567,61 @@ def bulk_assign_subjects(
     return MessageResponse(message=f"{assigned_count} subject(s) assigned successfully")
 
 
+@router.put("/students/{student_id}/transferee-credits", response_model=MessageResponse)
+def update_transferee_credits(
+    student_id: int,
+    data: TransfereeCreditUpdate,
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Update credit statuses for a transferee student's previous school subjects."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    if student.enrollment_type is None or student.enrollment_type.value != "TRANSFEREE":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Student is not a transferee",
+        )
+
+    student.transferee_subjects = [s.model_dump() for s in data.subjects]
+
+    # Notify student of credit decision if any subject was credited or not credited
+    has_decision = any(s.credit_status != "pending" for s in data.subjects)
+    if has_decision:
+        credited = sum(1 for s in data.subjects if s.credit_status == "credited")
+        not_credited = sum(1 for s in data.subjects if s.credit_status == "not_credited")
+        create_notification(
+            db, student.user_id,
+            "Credit Evaluation Updated",
+            f"The registrar has reviewed your transferred subjects. "
+            f"{credited} credited, {not_credited} not credited.",
+            NotificationType.SUBJECTS_ASSIGNED,
+        )
+
+    db.commit()
+    return MessageResponse(message="Transferee credit statuses updated successfully")
+
+
 @router.get("/subjects/{subject_id}/students", response_model=list[StudentResponse])
 def list_subject_students(
     subject_id: int,
     _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
     db: Session = Depends(get_db),
 ):
-    """List all students enrolled in a specific subject."""
+    """List verified students enrolled in a subject, sorted alphabetically by last name."""
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
 
-    enrollments = db.query(StudentSubject).filter(StudentSubject.subject_id == subject_id).all()
-    students = [e.student for e in enrollments]
+    students = (
+        db.query(Student)
+        .join(StudentSubject, StudentSubject.student_id == Student.id)
+        .filter(
+            StudentSubject.subject_id == subject_id,
+            Student.payment_status == "verified",
+        )
+        .order_by(Student.last_name, Student.first_name)
+        .all()
+    )
     return [_student_to_response(s) for s in students]

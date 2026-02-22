@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Plus, Trash2, Loader2, Search, User, CheckCircle, ListChecks } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Trash2, Loader2, Search, User, CheckCircle, ListChecks, Printer, X, BookMarked, AlertCircle } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getApprovedStudents, getSubjects, assignSubject, unassignSubject, getStudentCompleteInfo, getStudentEnrolledSubjects, bulkAssignSubjects } from '../../services/api';
+import PrintableClassList from '../../components/PrintableClassList';
+import { getApprovedStudents, getSubjects, assignSubject, unassignSubject, getStudentCompleteInfo, getStudentEnrolledSubjects, bulkAssignSubjects, getClassList, updateTransfereeCreditStatus } from '../../services/api';
 import { getErrorMessage } from '../../utils/helpers';
 
 const enrollmentTypeBadge = (type) => {
@@ -35,6 +37,40 @@ export default function AssignSubjects() {
   const [gradeFilter, setGradeFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [transfereeSubjectsDraft, setTransfereeSubjectsDraft] = useState([]);
+  const [savingCredits, setSavingCredits] = useState(false);
+
+  // Class list
+  const [showClassListPicker, setShowClassListPicker] = useState(false);
+  const [clStrand, setClStrand] = useState('STEM');
+  const [clGrade, setClGrade] = useState('Grade 11');
+  const [clSemester, setClSemester] = useState('');
+  const [classListStudents, setClassListStudents] = useState([]);
+  const [showClassList, setShowClassList] = useState(false);
+  const [loadingClassList, setLoadingClassList] = useState(false);
+  const classListRef = useRef(null);
+
+  const handlePrintClassList = useReactToPrint({
+    contentRef: classListRef,
+    documentTitle: `ClassList-${clStrand}-${clGrade}`,
+    pageStyle: `@page { size: A4 portrait; margin: 0; } body { margin: 0; }`,
+  });
+
+  const handleGenerateClassList = async () => {
+    setLoadingClassList(true);
+    try {
+      const params = { strand: clStrand, grade_level: clGrade };
+      if (clSemester) params.semester = clSemester;
+      const res = await getClassList(params);
+      setClassListStudents(res.data);
+      setShowClassListPicker(false);
+      setShowClassList(true);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoadingClassList(false);
+    }
+  };
 
   const fetchStudents = () => {
     setLoading(true);
@@ -56,6 +92,7 @@ export default function AssignSubjects() {
       setStudentDetail(null);
       setSubjects([]);
       setEnrolledSubjects([]);
+      setTransfereeSubjectsDraft([]);
       return;
     }
 
@@ -68,6 +105,7 @@ export default function AssignSubjects() {
       const student = infoRes.data;
       setStudentDetail(student);
       setEnrolledSubjects(enrolledRes.data.subject_ids || []);
+      setTransfereeSubjectsDraft(student.transferee_subjects || []);
 
       // Get subjects matching student's strand, grade, and semester
       const params = {};
@@ -138,13 +176,37 @@ export default function AssignSubjects() {
   const enrolledCount = enrolledSubjects.length;
   const totalSubjects = subjects.length;
 
+  const handleSaveCredits = async () => {
+    setSavingCredits(true);
+    try {
+      await updateTransfereeCreditStatus(selectedStudent, { subjects: transfereeSubjectsDraft });
+      toast.success('Credit statuses saved successfully');
+      // Refresh student detail to sync
+      const infoRes = await getStudentCompleteInfo(selectedStudent);
+      setTransfereeSubjectsDraft(infoRes.data.transferee_subjects || []);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSavingCredits(false);
+    }
+  };
+
   if (loading && students.length === 0) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Assign Subjects</h1>
-        <p className="text-gray-500">Select a student and assign subjects to them</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Assign Subjects</h1>
+          <p className="text-gray-500">Select a student and assign subjects to them</p>
+        </div>
+        <button
+          onClick={() => setShowClassListPicker(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+        >
+          <Printer size={16} />
+          Print Class List
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -375,6 +437,126 @@ export default function AssignSubjects() {
         </div>
       </div>
 
+      {/* Transferee Credit Review Panel */}
+      {studentDetail && studentDetail.enrollment_type === 'TRANSFEREE' && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-amber-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BookMarked size={20} className="text-amber-600" />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Transferee Credit Evaluation
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Review subjects from {studentDetail.last_school_attended || 'previous school'} and mark each as credited or not.
+                </p>
+              </div>
+            </div>
+            {transfereeSubjectsDraft.length > 0 && (
+              <button
+                onClick={handleSaveCredits}
+                disabled={savingCredits}
+                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50"
+              >
+                {savingCredits ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+                {savingCredits ? 'Saving...' : 'Save Credit Decisions'}
+              </button>
+            )}
+          </div>
+
+          {transfereeSubjectsDraft.length === 0 ? (
+            <div className="text-center py-8 bg-amber-50 rounded-xl border border-dashed border-amber-200">
+              <BookMarked size={32} className="mx-auto mb-2 text-amber-300" />
+              <p className="text-sm text-gray-500">This student has not submitted any previous school subjects yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="text-left pb-3 font-medium text-gray-500">Subject Name</th>
+                      <th className="text-left pb-3 font-medium text-gray-500">Code</th>
+                      <th className="text-left pb-3 font-medium text-gray-500">Units</th>
+                      <th className="text-left pb-3 font-medium text-gray-500">Grade</th>
+                      <th className="text-left pb-3 font-medium text-gray-500">Credit Decision</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transfereeSubjectsDraft.map((subj, idx) => (
+                      <tr key={idx} className={`border-b last:border-0 ${
+                        subj.credit_status === 'credited' ? 'bg-emerald-50/40' :
+                        subj.credit_status === 'not_credited' ? 'bg-red-50/40' : ''
+                      }`}>
+                        <td className="py-3 font-medium">{subj.subject_name || '—'}</td>
+                        <td className="py-3 text-gray-500">{subj.subject_code || '—'}</td>
+                        <td className="py-3">{subj.units || '—'}</td>
+                        <td className="py-3">{subj.grade || '—'}</td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const updated = [...transfereeSubjectsDraft];
+                                updated[idx] = { ...updated[idx], credit_status: 'credited' };
+                                setTransfereeSubjectsDraft(updated);
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                                subj.credit_status === 'credited'
+                                  ? 'bg-emerald-600 text-white border-emerald-600'
+                                  : 'bg-white text-emerald-600 border-emerald-300 hover:bg-emerald-50'
+                              }`}
+                            >
+                              <CheckCircle size={12} /> Credited
+                            </button>
+                            <button
+                              onClick={() => {
+                                const updated = [...transfereeSubjectsDraft];
+                                updated[idx] = { ...updated[idx], credit_status: 'not_credited' };
+                                setTransfereeSubjectsDraft(updated);
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                                subj.credit_status === 'not_credited'
+                                  ? 'bg-red-500 text-white border-red-500'
+                                  : 'bg-white text-red-500 border-red-300 hover:bg-red-50'
+                              }`}
+                            >
+                              <AlertCircle size={12} /> Not Credited
+                            </button>
+                            {subj.credit_status !== 'pending' && (
+                              <button
+                                onClick={() => {
+                                  const updated = [...transfereeSubjectsDraft];
+                                  updated[idx] = { ...updated[idx], credit_status: 'pending' };
+                                  setTransfereeSubjectsDraft(updated);
+                                }}
+                                className="text-xs text-gray-400 hover:text-gray-600 underline"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                <span className="text-emerald-600 font-medium">
+                  {transfereeSubjectsDraft.filter((s) => s.credit_status === 'credited').length} Credited
+                </span>
+                <span className="text-red-500 font-medium">
+                  {transfereeSubjectsDraft.filter((s) => s.credit_status === 'not_credited').length} Not Credited
+                </span>
+                <span className="text-gray-400">
+                  {transfereeSubjectsDraft.filter((s) => s.credit_status === 'pending').length} Pending
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Bulk Assign Confirmation */}
       <ConfirmModal
         open={showBulkConfirm}
@@ -386,6 +568,110 @@ export default function AssignSubjects() {
         variant="success"
         loading={bulkAssigning}
       />
+
+      {/* Class List Picker Modal */}
+      {showClassListPicker && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 animate-scale-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-800">Generate Class List</h3>
+              <button onClick={() => setShowClassListPicker(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Strand</label>
+                <select
+                  value={clStrand}
+                  onChange={(e) => setClStrand(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {['STEM','ABM','HUMSS','GAS','TVL-ICT','TVL-HE','TVL-IA','TVL-AFA','SPORTS','ARTS'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+                <select
+                  value={clGrade}
+                  onChange={(e) => setClGrade(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Semester <span className="text-gray-400 font-normal">(optional)</span></label>
+                <select
+                  value={clSemester}
+                  onChange={(e) => setClSemester(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Semesters</option>
+                  <option value="1st Semester">1st Semester</option>
+                  <option value="2nd Semester">2nd Semester</option>
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={handleGenerateClassList}
+              disabled={loadingClassList}
+              className="mt-5 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition"
+            >
+              {loadingClassList
+                ? <><Loader2 size={16} className="animate-spin" /> Generating…</>
+                : <><Printer size={16} /> Generate Class List</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Class List Print Preview */}
+      {showClassList && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 overflow-auto"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowClassList(false); }}
+        >
+          <div className="w-fit mx-auto my-6 animate-scale-in">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between bg-gray-800 text-white px-5 py-3 rounded-t-xl">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Printer size={16} />
+                Class List — {clStrand} · {clGrade}{clSemester ? ` · ${clSemester}` : ''}
+                <span className="ml-2 text-gray-400 text-xs">{classListStudents.length} student(s)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrintClassList}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition"
+                >
+                  <Printer size={14} />
+                  Print / Save as PDF
+                </button>
+                <button
+                  onClick={() => setShowClassList(false)}
+                  className="p-1.5 hover:bg-gray-700 rounded-lg transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            {/* Paper */}
+            <div className="bg-white shadow-2xl rounded-b-xl overflow-hidden">
+              <PrintableClassList
+                ref={classListRef}
+                strand={clStrand}
+                gradeLevel={clGrade}
+                semester={clSemester}
+                students={classListStudents}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

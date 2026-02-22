@@ -101,6 +101,11 @@ class Student(Base):
     transfer_credential_path: Mapped[str | None] = mapped_column(String(500))
     good_moral_path: Mapped[str | None] = mapped_column(String(500))
 
+    # Transferee: subjects taken at previous school
+    # Each entry: {subject_name, subject_code, units, grade, credit_status}
+    # credit_status: "pending" | "credited" | "not_credited"
+    transferee_subjects: Mapped[list | None] = mapped_column(JSON, default=list, nullable=True)
+
     # Payment
     payment_receipt_path: Mapped[str | None] = mapped_column(String(500))
     payment_status: Mapped[str] = mapped_column(String(30), default="unpaid", server_default="unpaid")

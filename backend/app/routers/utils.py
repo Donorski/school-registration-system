@@ -1,6 +1,12 @@
 """Utility endpoints — address lookups and strand listings."""
 
-from fastapi import APIRouter
+from datetime import date
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models.academic_calendar import AcademicCalendar
 
 router = APIRouter(prefix="/api/utils", tags=["Utilities"])
 
@@ -102,3 +108,45 @@ def get_barangays(city: str):
 def get_strands():
     """List all available Senior High School strands."""
     return {"strands": STRANDS}
+
+
+@router.get("/enrollment-status")
+def get_enrollment_status(db: Session = Depends(get_db)):
+    """Public endpoint — returns whether enrollment is currently open."""
+    calendar = db.query(AcademicCalendar).first()
+    if not calendar:
+        return {
+            "is_open": False,
+            "school_year": None,
+            "semester": None,
+            "enrollment_start": None,
+            "enrollment_end": None,
+            "message": "Enrollment is currently closed.",
+        }
+
+    today = date.today()
+    # If admin manually toggled is_open, respect it.
+    # Additionally auto-close if today is outside the date range (when dates are set).
+    within_dates = True
+    if calendar.enrollment_start and calendar.enrollment_end:
+        within_dates = calendar.enrollment_start <= today <= calendar.enrollment_end
+
+    is_open = calendar.is_open and within_dates
+
+    if is_open:
+        msg = f"Enrollment is open for S.Y. {calendar.school_year} — {calendar.semester} Semester."
+    elif calendar.enrollment_start and today < calendar.enrollment_start:
+        msg = f"Enrollment opens on {calendar.enrollment_start.strftime('%B %d, %Y')}."
+    elif calendar.enrollment_end and today > calendar.enrollment_end:
+        msg = f"Enrollment closed on {calendar.enrollment_end.strftime('%B %d, %Y')}."
+    else:
+        msg = "Enrollment is currently closed."
+
+    return {
+        "is_open": is_open,
+        "school_year": calendar.school_year,
+        "semester": calendar.semester,
+        "enrollment_start": calendar.enrollment_start,
+        "enrollment_end": calendar.enrollment_end,
+        "message": msg,
+    }

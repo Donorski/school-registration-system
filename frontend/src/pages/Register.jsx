@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, Check, X, CalendarX } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { registerStudent } from '../services/api';
+import { registerStudent, getEnrollmentStatus } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { getErrorMessage } from '../utils/helpers';
 
@@ -13,6 +13,29 @@ const ROLE_REDIRECTS = {
   registrar: '/registrar/dashboard',
 };
 
+function computeStrength(pw = '') {
+  const rules = [
+    pw.length >= 8,
+    /[A-Z]/.test(pw),
+    /[a-z]/.test(pw),
+    /[0-9]/.test(pw),
+    /[!@#$%^&*(),.?":{}|<>]/.test(pw),
+  ];
+  return rules;
+}
+
+const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Strong'];
+const STRENGTH_COLORS = ['', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500', 'bg-emerald-500'];
+const STRENGTH_TEXT   = ['', 'text-red-600', 'text-orange-500', 'text-yellow-600', 'text-emerald-600', 'text-emerald-600'];
+
+const RULE_LABELS = [
+  'At least 8 characters',
+  'Uppercase letter (A–Z)',
+  'Lowercase letter (a–z)',
+  'Number (0–9)',
+  'Special character (!@#$…)',
+];
+
 export default function Register() {
   const { user, loginUser } = useAuth();
   const navigate = useNavigate();
@@ -20,15 +43,26 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState('');
+  const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
-  const password = watch('password');
+  const password = watch('password', '');
+  const rules = computeStrength(password);
+  const score = rules.filter(Boolean).length; // 0–5, treat 5 same as 4 for display
 
   useEffect(() => {
     if (user) {
       navigate(ROLE_REDIRECTS[user.role] || '/login', { replace: true });
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    getEnrollmentStatus()
+      .then((res) => setEnrollmentStatus(res.data))
+      .catch(() => setEnrollmentStatus({ is_open: true })) // fail open so network errors don't block registration
+      .finally(() => setStatusLoading(false));
+  }, []);
 
   const onSubmit = async (data) => {
     setSubmitting(true);
@@ -62,6 +96,17 @@ export default function Register() {
           <h1 className="text-2xl font-bold text-gray-800">Create Your Account</h1>
           <p className="text-gray-500 mt-1">Register to apply for enrollment</p>
         </div>
+
+        {/* Enrollment closed banner */}
+        {!statusLoading && enrollmentStatus && !enrollmentStatus.is_open && (
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-4 mb-6">
+            <CalendarX size={20} className="shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm">Enrollment is Closed</p>
+              <p className="text-xs mt-0.5">{enrollmentStatus.message}</p>
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -116,10 +161,49 @@ export default function Register() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password ? (
+
+              {/* Strength bar */}
+              {password.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex gap-1 flex-1">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                            score >= i ? STRENGTH_COLORS[Math.min(score, 4)] : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className={`text-xs font-medium ml-2 ${STRENGTH_TEXT[Math.min(score, 4)]}`}>
+                      {STRENGTH_LABELS[Math.min(score, 4)]}
+                    </span>
+                  </div>
+
+                  {/* Per-rule checklist */}
+                  <div className="mt-2 space-y-1">
+                    {RULE_LABELS.map((label, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        {rules[i] ? (
+                          <Check size={13} className="text-emerald-500 shrink-0" />
+                        ) : (
+                          <X size={13} className="text-gray-300 shrink-0" />
+                        )}
+                        <span className={`text-xs ${rules[i] ? 'text-emerald-600' : 'text-gray-400'}`}>
+                          {label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!password && errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">Min. 8 characters with uppercase, lowercase, number & special character</p>
+              )}
+              {!password && !errors.password && (
+                <p className="text-gray-400 text-xs mt-1">Min. 8 characters with uppercase, lowercase, number &amp; special character</p>
               )}
             </div>
 
@@ -148,12 +232,15 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || (enrollmentStatus && !enrollmentStatus.is_open)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
               {submitting ? 'Creating Account...' : 'Create Account'}
             </button>
+            {enrollmentStatus && !enrollmentStatus.is_open && (
+              <p className="text-center text-xs text-amber-600 mt-2">Registration is disabled while enrollment is closed.</p>
+            )}
           </form>
 
           <div className="mt-4 text-center">

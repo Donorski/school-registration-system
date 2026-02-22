@@ -52,6 +52,10 @@ class StudentUpdate(BaseModel):
     guardian_full_name: str | None = Field(None, max_length=200)
     guardian_contact: str | None = Field(None, max_length=20)
 
+    # Transferee: list of subjects taken at previous school
+    # Each item: {subject_name, subject_code, units, grade, credit_status}
+    transferee_subjects: list[dict] | None = None
+
     # Enrollment Info (filled by admin on approval)
     enrollment_date: date | None = None
     place_of_birth: str | None = Field(None, max_length=255)
@@ -169,6 +173,9 @@ class StudentResponse(BaseModel):
     guardian_full_name: str | None = None
     guardian_contact: str | None = None
 
+    # Transferee subjects
+    transferee_subjects: list[dict] | None = None
+
     # E. Documents
     documents_path: list[str] | None = None
     grades_path: str | None = None
@@ -196,6 +203,27 @@ class StudentResponse(BaseModel):
     email: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class TransfereeCreditItem(BaseModel):
+    """A single transferee subject with updated credit status."""
+    subject_name: str
+    subject_code: str | None = None
+    units: str | None = None
+    grade: str | None = None
+    credit_status: str  # "pending" | "credited" | "not_credited"
+
+    @field_validator("credit_status")
+    @classmethod
+    def validate_credit_status(cls, v: str) -> str:
+        if v not in ("pending", "credited", "not_credited"):
+            raise ValueError("credit_status must be pending, credited, or not_credited")
+        return v
+
+
+class TransfereeCreditUpdate(BaseModel):
+    """Payload for registrar to update all transferee subject credit statuses."""
+    subjects: list[TransfereeCreditItem]
 
 
 class StudentListResponse(BaseModel):
