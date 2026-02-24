@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, BookOpen, UserPlus, CreditCard,
-  Settings, X,
+  Settings, X, ScrollText,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getPendingStudents, getPendingPayments } from '../services/api';
@@ -17,6 +17,7 @@ const links = {
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/pending', label: 'Pending', icon: ClipboardList, badge: true },
     { to: '/admin/students', label: 'All Students', icon: Users },
+    { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText },
     { to: '/admin/settings', label: 'Settings', icon: Settings },
   ],
   registrar: [

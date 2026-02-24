@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, User, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, User, FileText, AlertCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { getStudentById, approveStudent, denyStudent } from '../../services/api';
+import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
 export default function StudentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
+  const [enrollmentHistory, setEnrollmentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedRecord, setExpandedRecord] = useState(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [showDenyModal, setShowDenyModal] = useState(false);
+  const [denyReason, setDenyReason] = useState('');
+  const [denying, setDenying] = useState(false);
   const [enrollForm, setEnrollForm] = useState({
     enrollment_date: '',
     place_of_birth: '',
@@ -23,9 +28,13 @@ export default function StudentDetails() {
   });
 
   useEffect(() => {
-    getStudentById(id)
-      .then((res) => setStudent(res.data))
-      .finally(() => setLoading(false));
+    Promise.all([
+      getStudentById(id),
+      getAdminStudentEnrollmentHistory(id),
+    ]).then(([studentRes, historyRes]) => {
+      setStudent(studentRes.data);
+      setEnrollmentHistory(historyRes.data);
+    }).finally(() => setLoading(false));
   }, [id]);
 
   const handleApproveClick = () => {
@@ -53,13 +62,17 @@ export default function StudentDetails() {
     }
   };
 
-  const handleDeny = async () => {
+  const handleDenyConfirm = async () => {
+    setDenying(true);
     try {
-      await denyStudent(id);
+      await denyStudent(id, denyReason);
       toast.success('Student denied');
-      setStudent({ ...student, status: 'denied' });
+      setStudent({ ...student, status: 'denied', denial_reason: denyReason || null });
+      setShowDenyModal(false);
     } catch (err) {
       toast.error(getErrorMessage(err));
+    } finally {
+      setDenying(false);
     }
   };
 
@@ -104,7 +117,7 @@ export default function StudentDetails() {
             <button onClick={handleApproveClick} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
               <CheckCircle size={16} /> Approve
             </button>
-            <button onClick={handleDeny} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            <button onClick={() => { setDenyReason(''); setShowDenyModal(true); }} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
               <XCircle size={16} /> Deny
             </button>
           </div>
@@ -283,6 +296,125 @@ export default function StudentDetails() {
           </div>
         </div>
       </div>
+
+      {/* Enrollment History */}
+      {enrollmentHistory.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={18} className="text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Enrollment History</h2>
+            <span className="ml-auto text-xs text-gray-400">{enrollmentHistory.length} record{enrollmentHistory.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="space-y-2">
+            {enrollmentHistory.map((record) => (
+              <div key={record.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition"
+                  onClick={() => setExpandedRecord(expandedRecord === record.id ? null : record.id)}
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-800">
+                      {record.school_year || '—'} · {record.semester || '—'}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {record.grade_level || '—'} · {record.strand || '—'}
+                      {record.enrollment_type && (
+                        <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-blue-50 text-blue-700' :
+                          record.enrollment_type === 'TRANSFEREE' ? 'bg-amber-50 text-amber-700' :
+                          'bg-purple-50 text-purple-700'
+                        }`}>
+                          {record.enrollment_type.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-gray-400">
+                      {new Date(record.archived_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                    {expandedRecord === record.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                  </div>
+                </button>
+                {expandedRecord === record.id && (
+                  <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                    {record.subjects_snapshot && record.subjects_snapshot.length > 0 ? (
+                      <table className="w-full text-sm mt-3">
+                        <thead>
+                          <tr className="border-b text-left text-gray-500">
+                            <th className="pb-2 font-medium">Code</th>
+                            <th className="pb-2 font-medium">Subject</th>
+                            <th className="pb-2 font-medium">Schedule</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {record.subjects_snapshot.map((s, idx) => (
+                            <tr key={idx} className="border-b last:border-0">
+                              <td className="py-2 font-medium text-emerald-600">{s.subject_code || '—'}</td>
+                              <td className="py-2">{s.subject_name}</td>
+                              <td className="py-2 text-gray-500">{s.schedule || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-3">No subjects in this record.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Denial Reason Banner */}
+      {student.status === 'denied' && student.denial_reason && (
+        <div className="mt-6 flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-4 rounded-xl text-sm">
+          <AlertCircle size={18} className="shrink-0 mt-0.5 text-red-500" />
+          <div>
+            <p className="font-semibold mb-0.5">Denial Reason</p>
+            <p>{student.denial_reason}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Deny with Reason Modal */}
+      {showDenyModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+            <h3 className="text-base font-semibold text-gray-800 mb-1">Deny Application</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Denying <strong>{student.first_name} {student.last_name}</strong>. Optionally provide a reason so the student knows what to correct.
+            </p>
+            <textarea
+              value={denyReason}
+              onChange={(e) => setDenyReason(e.target.value)}
+              placeholder="e.g. Incomplete documents — PSA birth certificate is missing."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none resize-none"
+            />
+            <p className="text-xs text-gray-400 mt-1">Optional — leave blank if no specific reason.</p>
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setShowDenyModal(false)}
+                disabled={denying}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDenyConfirm}
+                disabled={denying}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50"
+              >
+                {denying ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                {denying ? 'Denying...' : 'Confirm Deny'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Enrollment Approval Modal */}
       <Modal open={showEnrollModal} onClose={() => setShowEnrollModal(false)} title="Enrollment Form — Approve & Enroll" size="lg">

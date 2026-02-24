@@ -9,11 +9,13 @@ from app.database import get_db
 from app.auth.dependencies import require_role
 from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus
-from app.schemas.student import StudentUpdate, StudentResponse, StudentStatusResponse
+from app.schemas.student import StudentUpdate, StudentResponse, StudentStatusResponse, EnrollmentRecordResponse
+from app.models.enrollment_record import EnrollmentRecord
 from app.schemas.subject import EnrolledSubjectResponse
 from app.utils.file_upload import save_photo, save_document, save_receipt, save_grades, save_voucher, save_psa_birth_cert, save_transfer_credential, save_good_moral
 from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
+from app.utils.audit_log import create_audit_log
 
 router = APIRouter(prefix="/api/students", tags=["Student"])
 
@@ -28,6 +30,48 @@ def _get_student_or_404(user: User, db: Session) -> Student:
 def _calculate_age(birthday: date) -> int:
     today = date.today()
     return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+
+
+def _should_archive(student: Student) -> bool:
+    """Return True if the student has a completed enrollment that needs archiving."""
+    return student.payment_status == "verified" and len(student.subjects) > 0
+
+
+def _archive_enrollment(student: Student, db: Session) -> None:
+    """Snapshot the current enrollment into enrollment_records then reset live state."""
+    snapshot = [
+        {
+            "subject_code": e.subject.subject_code,
+            "subject_name": e.subject.subject_name,
+            "schedule": e.subject.schedule,
+        }
+        for e in student.subjects
+        if e.subject
+    ]
+
+    record = EnrollmentRecord(
+        student_id=student.id,
+        school_year=student.school_year,
+        semester=student.semester,
+        grade_level=student.grade_level_to_enroll,
+        strand=student.strand,
+        enrollment_type=student.enrollment_type.value if student.enrollment_type else None,
+        student_number=student.student_number,
+        subjects_snapshot=snapshot,
+    )
+    db.add(record)
+
+    # Reset live enrollment state for the new cycle
+    student.payment_status = "unpaid"
+    student.payment_receipt_path = None
+    student.payment_verified_at = None
+    student.payment_rejection_reason = None
+    student.status = StudentStatus.PENDING
+    student.denial_reason = None
+
+    # Clear enrolled subjects
+    for enrollment in list(student.subjects):
+        db.delete(enrollment)
 
 
 def _student_to_response(student: Student, email: str) -> StudentResponse:
@@ -86,6 +130,12 @@ def update_my_profile(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    # Archive previous enrollment if the student has a completed cycle
+    if _should_archive(student):
+        archive_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+        _archive_enrollment(student, db)
+        create_audit_log(db, current_user, "ENROLLMENT_ARCHIVED", target_name=archive_label)
+
     # Detect first meaningful submission (first_name being set for the first time)
     is_first_submission = not student.first_name and bool(update_data.get("first_name"))
 
@@ -110,6 +160,8 @@ def update_my_profile(
                 f"A new student registration form has been submitted by {first} {last}.",
                 NotificationType.NEW_FORM_SUBMITTED,
             )
+        submit_label = f"{first} {last}".strip() or current_user.email
+        create_audit_log(db, current_user, "APPLICATION_SUBMITTED", target_name=submit_label)
 
     db.commit()
     db.refresh(student)
@@ -261,6 +313,10 @@ async def upload_payment_receipt(
             NotificationType.NEW_RECEIPT_UPLOADED,
         )
 
+    receipt_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or current_user.email
+    if student.student_number:
+        receipt_label = f"{receipt_label} ({student.student_number})"
+    create_audit_log(db, current_user, "RECEIPT_UPLOADED", target_name=receipt_label)
     db.commit()
     db.refresh(student)
     return _student_to_response(student, current_user.email)
@@ -289,6 +345,16 @@ def get_my_subjects(
             )
         )
     return results
+
+
+@router.get("/me/enrollment-history", response_model=list[EnrollmentRecordResponse])
+def get_my_enrollment_history(
+    current_user: User = Depends(require_role(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    """Get the current student's archived enrollment history, newest first."""
+    student = _get_student_or_404(current_user, db)
+    return student.enrollment_records
 
 
 @router.get("/me/status", response_model=StudentStatusResponse)

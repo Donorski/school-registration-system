@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -17,7 +18,7 @@ from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus
 from app.models.subject import Subject
 from app.models.student_subject import StudentSubject
-from app.schemas.student import StudentResponse, StudentListResponse, TransfereeCreditUpdate
+from app.schemas.student import StudentResponse, StudentListResponse, TransfereeCreditUpdate, EnrollmentRecordResponse
 from app.schemas.subject import (
     SubjectCreate, SubjectUpdate, SubjectResponse,
     AssignSubject, UnassignSubject, BulkAssignSubjects,
@@ -25,6 +26,8 @@ from app.schemas.subject import (
 from app.schemas.common import MessageResponse
 from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
+from app.models.enrollment_record import EnrollmentRecord
+from app.utils.audit_log import create_audit_log
 
 router = APIRouter(prefix="/api/registrar", tags=["Registrar"])
 
@@ -74,6 +77,47 @@ def _subject_to_response(subject: Subject, db: Session) -> SubjectResponse:
         enrolled_count=enrolled_count,
         created_at=subject.created_at,
     )
+
+
+def _upsert_enrollment_record(student: Student, db: Session) -> None:
+    """Create or update the enrollment record snapshot for a fully-enrolled student.
+
+    Called after any subject assignment so that history is visible immediately
+    without waiting for the student to start re-enrolling.
+    """
+    if student.payment_status != "verified" or not student.subjects:
+        return
+
+    snapshot = [
+        {
+            "subject_code": e.subject.subject_code,
+            "subject_name": e.subject.subject_name,
+            "schedule": e.subject.schedule,
+        }
+        for e in student.subjects
+        if e.subject
+    ]
+
+    # Find an existing record for this school_year + semester (current cycle)
+    existing = db.query(EnrollmentRecord).filter(
+        EnrollmentRecord.student_id == student.id,
+        EnrollmentRecord.school_year == student.school_year,
+        EnrollmentRecord.semester == student.semester,
+    ).first()
+
+    if existing:
+        existing.subjects_snapshot = snapshot
+    else:
+        db.add(EnrollmentRecord(
+            student_id=student.id,
+            school_year=student.school_year,
+            semester=student.semester,
+            grade_level=student.grade_level_to_enroll,
+            strand=student.strand,
+            enrollment_type=student.enrollment_type.value if student.enrollment_type else None,
+            student_number=student.student_number,
+            subjects_snapshot=snapshot,
+        ))
 
 
 # --- Class List ---
@@ -201,17 +245,26 @@ def verify_payment(
         NotificationType.PAYMENT_VERIFIED,
     )
 
+    student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    if student.student_number:
+        student_label = f"{student_label} ({student.student_number})"
+    create_audit_log(db, _registrar, "PAYMENT_VERIFIED", target_name=student_label)
     db.commit()
     return MessageResponse(message=f"Payment verified successfully. Student number: {student.student_number}")
+
+
+class RejectPaymentRequest(BaseModel):
+    reason: str | None = None
 
 
 @router.put("/students/{student_id}/reject-payment", response_model=MessageResponse)
 def reject_payment(
     student_id: int,
+    body: RejectPaymentRequest | None = None,
     _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
     db: Session = Depends(get_db),
 ):
-    """Reject a student's payment receipt and reset to unpaid."""
+    """Reject a student's payment receipt and reset to unpaid, with an optional reason."""
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
@@ -223,15 +276,24 @@ def reject_payment(
     student.payment_status = "unpaid"
     student.payment_receipt_path = None
     student.payment_verified_at = None
+    student.payment_rejection_reason = (body.reason.strip() if body and body.reason and body.reason.strip() else None)
 
-    # Notify student
+    # Build notification message
+    notif_body = "Your payment receipt has been rejected. Please upload a new receipt."
+    if student.payment_rejection_reason:
+        notif_body += f" Reason: {student.payment_rejection_reason}"
+
     create_notification(
         db, student.user_id,
         "Payment Rejected",
-        "Your payment receipt has been rejected. Please upload a new receipt.",
+        notif_body,
         NotificationType.PAYMENT_REJECTED,
     )
 
+    student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    if student.student_number:
+        student_label = f"{student_label} ({student.student_number})"
+    create_audit_log(db, _registrar, "PAYMENT_REJECTED", target_name=student_label, details=student.payment_rejection_reason)
     db.commit()
     return MessageResponse(message="Payment receipt rejected")
 
@@ -247,6 +309,19 @@ def get_student_complete_info(
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
     return _student_to_response(student)
+
+
+@router.get("/students/{student_id}/enrollment-history", response_model=list[EnrollmentRecordResponse])
+def get_student_enrollment_history(
+    student_id: int,
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Get enrollment history for a specific student, newest first."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    return student.enrollment_records
 
 
 @router.get("/students/{student_id}/download-files")
@@ -322,6 +397,8 @@ def create_subject(
 
     subject = Subject(**data.model_dump())
     db.add(subject)
+    db.flush()
+    create_audit_log(db, _registrar, "SUBJECT_CREATED", target_name=f"{subject.subject_code} — {subject.subject_name}")
     db.commit()
     db.refresh(subject)
     return _subject_to_response(subject, db)
@@ -377,6 +454,7 @@ def update_subject(
     for field, value in update_data.items():
         setattr(subject, field, value)
 
+    create_audit_log(db, _registrar, "SUBJECT_UPDATED", target_name=f"{subject.subject_code} — {subject.subject_name}")
     db.commit()
     db.refresh(subject)
     return _subject_to_response(subject, db)
@@ -393,6 +471,8 @@ def delete_subject(
     if not subject:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
 
+    subject_label = f"{subject.subject_code} — {subject.subject_name}"
+    create_audit_log(db, _registrar, "SUBJECT_DELETED", target_name=subject_label)
     db.delete(subject)
     db.commit()
     return MessageResponse(message=f"Subject '{subject.subject_code}' deleted")
@@ -472,6 +552,13 @@ def assign_subject(
         NotificationType.SUBJECTS_ASSIGNED,
     )
 
+    student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    if student.student_number:
+        student_label = f"{student_label} ({student.student_number})"
+    create_audit_log(db, _registrar, "SUBJECT_ASSIGNED", target_name=student_label, details=subject.subject_code)
+    db.commit()
+    db.refresh(student)
+    _upsert_enrollment_record(student, db)
     db.commit()
     return MessageResponse(message=f"Student assigned to {subject.subject_code}")
 
@@ -494,6 +581,14 @@ def unassign_subject(
             detail="Enrollment not found",
         )
 
+    student = db.query(Student).filter(Student.id == data.student_id).first()
+    subject = db.query(Subject).filter(Subject.id == data.subject_id).first()
+    student_label = None
+    if student:
+        student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+        if student.student_number:
+            student_label = f"{student_label} ({student.student_number})"
+    create_audit_log(db, _registrar, "SUBJECT_UNASSIGNED", target_name=student_label, details=subject.subject_code if subject else None)
     db.delete(enrollment)
     db.commit()
     return MessageResponse(message="Student removed from subject")
@@ -563,6 +658,13 @@ def bulk_assign_subjects(
             NotificationType.SUBJECTS_ASSIGNED,
         )
 
+    student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    if student.student_number:
+        student_label = f"{student_label} ({student.student_number})"
+    create_audit_log(db, _registrar, "BULK_SUBJECTS_ASSIGNED", target_name=student_label, details=f"{assigned_count} subject(s)")
+    db.commit()
+    db.refresh(student)
+    _upsert_enrollment_record(student, db)
     db.commit()
     return MessageResponse(message=f"{assigned_count} subject(s) assigned successfully")
 
@@ -599,6 +701,12 @@ def update_transferee_credits(
             NotificationType.SUBJECTS_ASSIGNED,
         )
 
+    student_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    if student.student_number:
+        student_label = f"{student_label} ({student.student_number})"
+    credited = sum(1 for s in data.subjects if s.credit_status == "credited")
+    not_credited = sum(1 for s in data.subjects if s.credit_status == "not_credited")
+    create_audit_log(db, _registrar, "CREDITS_UPDATED", target_name=student_label, details=f"{credited} credited, {not_credited} not credited")
     db.commit()
     return MessageResponse(message="Transferee credit statuses updated successfully")
 

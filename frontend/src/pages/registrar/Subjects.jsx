@@ -38,7 +38,7 @@ export default function Subjects() {
 
   const openAdd = () => {
     setEditing(null);
-    reset({ subject_code: '', subject_name: '', units: 3, schedule: '', strand: 'STEM', grade_level: 'Grade 11', semester: '1st Semester', max_students: 40 });
+    reset({ subject_code: '', subject_name: '', schedule: '', strand: 'STEM', grade_level: 'Grade 11', semester: '1st Semester', max_students: 40 });
     setModalOpen(true);
   };
 
@@ -49,7 +49,6 @@ export default function Subjects() {
   };
 
   const onSubmit = (data) => {
-    data.units = parseInt(data.units);
     data.max_students = parseInt(data.max_students);
     setPendingSubmit(data);
   };
@@ -143,7 +142,6 @@ export default function Subjects() {
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Code</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Subject Name</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Units</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Schedule</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Strand</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Grade</th>
@@ -157,7 +155,6 @@ export default function Subjects() {
                   <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-emerald-600">{s.subject_code}</td>
                     <td className="px-4 py-3">{s.subject_name}</td>
-                    <td className="px-4 py-3">{s.units}</td>
                     <td className="px-4 py-3 text-gray-500">{s.schedule}</td>
                     <td className="px-4 py-3"><span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-medium">{s.strand}</span></td>
                     <td className="px-4 py-3">{s.grade_level}</td>
@@ -190,15 +187,9 @@ export default function Subjects() {
             <input {...register('subject_name', { required: 'Required' })} className={inputClass} placeholder="e.g. General Chemistry 1" />
             {errors.subject_name && <p className="text-red-500 text-xs mt-1">{errors.subject_name.message}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Units</label>
-              <input type="number" {...register('units', { required: 'Required', min: 1 })} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
-              <input type="number" {...register('max_students', { required: 'Required', min: 1 })} className={inputClass} />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
+            <input type="number" {...register('max_students', { required: 'Required', min: 1 })} className={inputClass} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>

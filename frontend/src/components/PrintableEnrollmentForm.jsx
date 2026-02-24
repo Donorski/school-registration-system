@@ -5,7 +5,6 @@ import { forwardRef } from 'react';
  * Two-column body: subjects (left) + assessment of fees (right).
  */
 const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ profile, subjects }, ref) {
-  const totalUnits = subjects.reduce((sum, s) => sum + s.units, 0);
   const today = new Date().toLocaleDateString('en-PH', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -89,7 +88,6 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
                 <Th w="16px" center>#</Th>
                 <Th w="58px">Code</Th>
                 <Th>Subject Name</Th>
-                <Th w="28px" center>Units</Th>
                 <Th w="82px">Schedule</Th>
               </tr>
             </thead>
@@ -99,15 +97,11 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
                   <Td center style={{ color: '#999' }}>{i + 1}</Td>
                   <Td style={{ fontWeight: '700', color: '#15803d' }}>{s.subject_code}</Td>
                   <Td>{s.subject_name}</Td>
-                  <Td center>{s.units}</Td>
                   <Td>{s.schedule}</Td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ textAlign: 'right', fontSize: '7pt', fontWeight: 'bold', marginTop: '3px', flexShrink: 0 }}>
-            Total Units: <span style={{ color: '#15803d' }}>{totalUnits}</span>
-          </div>
         </div>
 
         {/* Divider */}

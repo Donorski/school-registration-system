@@ -13,6 +13,7 @@ export default function StudentProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const [denialReason, setDenialReason] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [photoPath, setPhotoPath] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -55,6 +56,7 @@ export default function StudentProfile() {
       .then((res) => {
         reset(res.data);
         setStatus(res.data.status);
+        setDenialReason(res.data.denial_reason || null);
         setPhotoPath(res.data.student_photo_path);
         setGradesPath(res.data.grades_path);
         setVoucherPath(res.data.voucher_path);
@@ -396,9 +398,18 @@ export default function StudentProfile() {
         </div>
       )}
       {isDenied && (
-        <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
-          <AlertCircle size={18} className="shrink-0" />
-          <p>Your application was <strong>denied</strong>. Please review your information, make corrections, and resubmit.</p>
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-4 rounded-xl text-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={18} className="shrink-0 mt-0.5" />
+            <div>
+              <p>Your application was <strong>denied</strong>. Please review your information, make corrections, and resubmit.</p>
+              {denialReason && (
+                <div className="mt-2 bg-red-100 border border-red-200 rounded-lg px-3 py-2">
+                  <span className="font-semibold">Reason: </span>{denialReason}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -747,7 +758,6 @@ export default function StudentProfile() {
                 <tr className="border-b text-left text-gray-500">
                   <th className="pb-2 font-medium pr-3">Subject Name</th>
                   <th className="pb-2 font-medium pr-3">Subject Code</th>
-                  <th className="pb-2 font-medium pr-3">Units</th>
                   <th className="pb-2 font-medium pr-3">Final Grade</th>
                   <th className="pb-2 font-medium">Credit Status</th>
                 </tr>
@@ -757,7 +767,6 @@ export default function StudentProfile() {
                   <tr key={idx} className="border-b last:border-0">
                     <td className="py-2 pr-3 font-medium">{subj.subject_name || '—'}</td>
                     <td className="py-2 pr-3 text-gray-500">{subj.subject_code || '—'}</td>
-                    <td className="py-2 pr-3">{subj.units || '—'}</td>
                     <td className="py-2 pr-3">{subj.grade || '—'}</td>
                     <td className="py-2">
                       {subj.credit_status === 'credited' ? (
@@ -1063,7 +1072,6 @@ export default function StudentProfile() {
                           Subject Name <span className="text-red-500">*</span>
                         </th>
                         <th className="pb-3 pt-2 px-2 font-medium">Subject Code</th>
-                        <th className="pb-3 pt-2 px-2 font-medium w-28">Units</th>
                         <th className="pb-3 pt-2 px-2 font-medium w-32">Final Grade</th>
                         <th className="pb-3 pt-2 px-2 font-medium w-10 rounded-r-lg"></th>
                       </tr>
@@ -1094,19 +1102,6 @@ export default function StudentProfile() {
                                 setTransfereeSubjects(updated);
                               }}
                               placeholder="e.g. GENMATH"
-                              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                            />
-                          </td>
-                          <td className="py-2.5 px-2">
-                            <input
-                              type="text"
-                              value={subj.units}
-                              onChange={(e) => {
-                                const updated = [...transfereeSubjects];
-                                updated[idx] = { ...updated[idx], units: e.target.value };
-                                setTransfereeSubjects(updated);
-                              }}
-                              placeholder="e.g. 3"
                               className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
                             />
                           </td>

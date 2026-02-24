@@ -106,6 +106,10 @@ class Student(Base):
     # credit_status: "pending" | "credited" | "not_credited"
     transferee_subjects: Mapped[list | None] = mapped_column(JSON, default=list, nullable=True)
 
+    # Admin/Registrar Remarks
+    denial_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    payment_rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Payment
     payment_receipt_path: Mapped[str | None] = mapped_column(String(500))
     payment_status: Mapped[str] = mapped_column(String(30), default="unpaid", server_default="unpaid")
@@ -125,4 +129,8 @@ class Student(Base):
     user: Mapped["User"] = relationship("User", back_populates="student")
     subjects: Mapped[list["StudentSubject"]] = relationship(
         "StudentSubject", back_populates="student", cascade="all, delete-orphan"
+    )
+    enrollment_records: Mapped[list["EnrollmentRecord"]] = relationship(
+        "EnrollmentRecord", back_populates="student", cascade="all, delete-orphan",
+        order_by="EnrollmentRecord.archived_at.desc()"
     )

@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dbtc_school_registration_system
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/dbtc_school_registration_system
+      JWT_SECRET_KEY: change-this-to-a-long-random-secret
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_HOURS: 24
+      MAX_FILE_SIZE_MB: 5
+      UPLOAD_DIR: uploads
+      CORS_ORIGINS: http://localhost,http://localhost:80
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  uploads_data:

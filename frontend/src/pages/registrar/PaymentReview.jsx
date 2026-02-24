@@ -15,7 +15,8 @@ export default function PaymentReview() {
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [downloading, setDownloading] = useState(false);
 
   const fetchStudents = async () => {
@@ -67,14 +68,15 @@ export default function PaymentReview() {
   };
 
   const handleReject = async () => {
-    setShowRejectConfirm(false);
+    setShowRejectModal(false);
     if (!selectedStudent) return;
     setActionLoading(true);
     try {
-      await rejectPayment(selectedStudent);
+      await rejectPayment(selectedStudent, rejectReason);
       toast.success('Payment receipt rejected');
       setSelectedStudent(null);
       setStudentDetail(null);
+      setRejectReason('');
       setLoading(true);
       await fetchStudents();
     } catch (err) {
@@ -408,7 +410,7 @@ export default function PaymentReview() {
                   Verify Payment
                 </button>
                 <button
-                  onClick={() => setShowRejectConfirm(true)}
+                  onClick={() => { setRejectReason(''); setShowRejectModal(true); }}
                   disabled={actionLoading}
                   className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition disabled:opacity-50"
                 >
@@ -437,17 +439,42 @@ export default function PaymentReview() {
         loading={actionLoading}
       />
 
-      {/* Reject Confirmation */}
-      <ConfirmModal
-        open={showRejectConfirm}
-        onClose={() => setShowRejectConfirm(false)}
-        onConfirm={handleReject}
-        title="Reject Payment"
-        message={`Are you sure you want to reject the payment receipt for "${studentDetail?.first_name} ${studentDetail?.last_name}"? The student will need to upload a new receipt.`}
-        confirmText="Reject"
-        variant="danger"
-        loading={actionLoading}
-      />
+      {/* Reject with Reason Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+            <h3 className="text-base font-semibold text-gray-800 mb-1">Reject Payment Receipt</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Rejecting receipt for <strong>{studentDetail?.first_name} {studentDetail?.last_name}</strong>. Optionally explain why so the student knows what to fix.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Receipt is blurry and unreadable. Please upload a clearer photo."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none resize-none"
+            />
+            <p className="text-xs text-gray-400 mt-1">Optional — leave blank if no specific reason.</p>
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                disabled={actionLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={actionLoading}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                {actionLoading ? 'Rejecting...' : 'Confirm Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

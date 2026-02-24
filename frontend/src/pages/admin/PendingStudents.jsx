@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, XCircle, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -12,6 +12,9 @@ export default function PendingStudents() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [denyTarget, setDenyTarget] = useState(null);
+  const [denyReason, setDenyReason] = useState('');
+  const [denying, setDenying] = useState(false);
   const perPage = 10;
 
   const fetchData = () => {
@@ -36,13 +39,23 @@ export default function PendingStudents() {
     }
   };
 
-  const handleDeny = async (id) => {
+  const openDenyModal = (student) => {
+    setDenyTarget(student);
+    setDenyReason('');
+  };
+
+  const handleDenyConfirm = async () => {
+    if (!denyTarget) return;
+    setDenying(true);
     try {
-      await denyStudent(id);
+      await denyStudent(denyTarget.id, denyReason);
       toast.success('Student denied');
+      setDenyTarget(null);
       fetchData();
     } catch (err) {
       toast.error(getErrorMessage(err));
+    } finally {
+      setDenying(false);
     }
   };
 
@@ -106,7 +119,7 @@ export default function PendingStudents() {
                           <button onClick={() => handleApprove(s.id)} className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg" title="Approve">
                             <CheckCircle size={16} />
                           </button>
-                          <button onClick={() => handleDeny(s.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Deny">
+                          <button onClick={() => openDenyModal(s)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Deny">
                             <XCircle size={16} />
                           </button>
                         </div>
@@ -132,6 +145,42 @@ export default function PendingStudents() {
           </>
         )}
       </div>
+      {/* Deny with Reason Modal */}
+      {denyTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+            <h3 className="text-base font-semibold text-gray-800 mb-1">Deny Application</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Denying <strong>{denyTarget.first_name} {denyTarget.last_name}</strong>. Optionally provide a reason so the student knows what to correct.
+            </p>
+            <textarea
+              value={denyReason}
+              onChange={(e) => setDenyReason(e.target.value)}
+              placeholder="e.g. Incomplete documents — PSA birth certificate is missing."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none resize-none"
+            />
+            <p className="text-xs text-gray-400 mt-1">Optional — leave blank if no specific reason.</p>
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setDenyTarget(null)}
+                disabled={denying}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDenyConfirm}
+                disabled={denying}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50"
+              >
+                {denying ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                {denying ? 'Denying...' : 'Confirm Deny'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -184,6 +184,10 @@ class StudentResponse(BaseModel):
     transfer_credential_path: str | None = None
     good_moral_path: str | None = None
 
+    # Admin/Registrar Remarks
+    denial_reason: str | None = None
+    payment_rejection_reason: str | None = None
+
     # Payment
     payment_receipt_path: str | None = None
     payment_status: str = "unpaid"
@@ -241,3 +245,19 @@ class StudentStatusResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     payment_status: str = "unpaid"
+
+
+class EnrollmentRecordResponse(BaseModel):
+    """A single archived enrollment cycle."""
+    id: int
+    student_id: int
+    school_year: str | None = None
+    semester: str | None = None
+    grade_level: str | None = None
+    strand: str | None = None
+    enrollment_type: str | None = None
+    student_number: str | None = None
+    subjects_snapshot: list[dict] | None = None
+    archived_at: datetime
+
+    model_config = {"from_attributes": True}

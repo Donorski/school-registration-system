@@ -48,6 +48,7 @@ export const lookupStudent = (studentNumber) => api.get(`/students/lookup/${stud
 export const updateMyProfile = (data) => api.put('/students/me', data);
 export const getMySubjects = () => api.get('/students/me/subjects');
 export const getMyStatus = () => api.get('/students/me/status');
+export const getMyEnrollmentHistory = () => api.get('/students/me/enrollment-history');
 export const uploadPhoto = (formData) =>
   api.post('/students/me/photo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -85,8 +86,9 @@ export const uploadPaymentReceipt = (formData) =>
 export const getAdminStudents = (params) => api.get('/admin/students', { params });
 export const getPendingStudents = (params) => api.get('/admin/students/pending', { params });
 export const getStudentById = (id) => api.get(`/admin/students/${id}`);
+export const getAdminStudentEnrollmentHistory = (id) => api.get(`/admin/students/${id}/enrollment-history`);
 export const approveStudent = (id, data = {}) => api.put(`/admin/students/${id}/approve`, data);
-export const denyStudent = (id) => api.put(`/admin/students/${id}/deny`);
+export const denyStudent = (id, reason) => api.put(`/admin/students/${id}/deny`, { reason: reason || null });
 export const deleteStudent = (id) => api.delete(`/admin/students/${id}`);
 export const getDashboardStats = () => api.get('/admin/dashboard/stats');
 export const getAccounts = (params) => api.get('/admin/accounts', { params });
@@ -98,6 +100,7 @@ export const resetAccountPassword = (id, data) => api.put(`/admin/accounts/${id}
 export const getApprovedStudents = (params) => api.get('/registrar/students/approved', { params });
 export const getClassList = (params) => api.get('/registrar/class-list', { params });
 export const getStudentCompleteInfo = (id) => api.get(`/registrar/students/${id}/complete-info`);
+export const getRegistrarStudentEnrollmentHistory = (id) => api.get(`/registrar/students/${id}/enrollment-history`);
 export const downloadStudentFiles = (id) =>
   api.get(`/registrar/students/${id}/download-files`, { responseType: 'blob' });
 export const getSubjects = (params) => api.get('/registrar/subjects', { params });
@@ -111,7 +114,7 @@ export const getStudentEnrolledSubjects = (id) => api.get(`/registrar/students/$
 export const bulkAssignSubjects = (data) => api.post('/registrar/bulk-assign-subjects', data);
 export const getPendingPayments = (params) => api.get('/registrar/students/pending-payments', { params });
 export const verifyPayment = (id) => api.put(`/registrar/students/${id}/verify-payment`);
-export const rejectPayment = (id) => api.put(`/registrar/students/${id}/reject-payment`);
+export const rejectPayment = (id, reason) => api.put(`/registrar/students/${id}/reject-payment`, { reason: reason || null });
 export const updateTransfereeCreditStatus = (id, data) => api.put(`/registrar/students/${id}/transferee-credits`, data);
 
 // --- Notifications ---
@@ -119,6 +122,9 @@ export const getNotifications = () => api.get('/notifications');
 export const getUnreadCount = () => api.get('/notifications/unread-count');
 export const markAsRead = (id) => api.put(`/notifications/${id}/read`);
 export const markAllAsRead = () => api.put('/notifications/read-all');
+
+// --- Audit Logs ---
+export const getAuditLogs = (params) => api.get('/admin/audit-logs', { params });
 
 // --- Academic Calendar ---
 export const getAcademicCalendar = () => api.get('/admin/academic-calendar');

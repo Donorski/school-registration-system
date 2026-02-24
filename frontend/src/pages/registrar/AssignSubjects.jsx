@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Trash2, Loader2, Search, User, CheckCircle, ListChecks, Printer, X, BookMarked, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, Search, User, CheckCircle, ListChecks, Printer, X, BookMarked, AlertCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ConfirmModal from '../../components/ConfirmModal';
 import PrintableClassList from '../../components/PrintableClassList';
-import { getApprovedStudents, getSubjects, assignSubject, unassignSubject, getStudentCompleteInfo, getStudentEnrolledSubjects, bulkAssignSubjects, getClassList, updateTransfereeCreditStatus } from '../../services/api';
+import { getApprovedStudents, getSubjects, assignSubject, unassignSubject, getStudentCompleteInfo, getStudentEnrolledSubjects, bulkAssignSubjects, getClassList, updateTransfereeCreditStatus, getRegistrarStudentEnrollmentHistory } from '../../services/api';
 import { getErrorMessage } from '../../utils/helpers';
 
 const enrollmentTypeBadge = (type) => {
@@ -39,6 +39,8 @@ export default function AssignSubjects() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [transfereeSubjectsDraft, setTransfereeSubjectsDraft] = useState([]);
   const [savingCredits, setSavingCredits] = useState(false);
+  const [studentHistory, setStudentHistory] = useState([]);
+  const [expandedRecord, setExpandedRecord] = useState(null);
 
   // Class list
   const [showClassListPicker, setShowClassListPicker] = useState(false);
@@ -93,19 +95,24 @@ export default function AssignSubjects() {
       setSubjects([]);
       setEnrolledSubjects([]);
       setTransfereeSubjectsDraft([]);
+      setStudentHistory([]);
+      setExpandedRecord(null);
       return;
     }
 
     setSelectedStudent(studentId);
     try {
-      const [infoRes, enrolledRes] = await Promise.all([
+      const [infoRes, enrolledRes, historyRes] = await Promise.all([
         getStudentCompleteInfo(studentId),
         getStudentEnrolledSubjects(studentId),
+        getRegistrarStudentEnrollmentHistory(studentId),
       ]);
       const student = infoRes.data;
       setStudentDetail(student);
       setEnrolledSubjects(enrolledRes.data.subject_ids || []);
       setTransfereeSubjectsDraft(student.transferee_subjects || []);
+      setStudentHistory(historyRes.data);
+      setExpandedRecord(null);
 
       // Get subjects matching student's strand, grade, and semester
       const params = {};
@@ -388,7 +395,6 @@ export default function AssignSubjects() {
                   <tr>
                     <th className="text-left pb-3 font-medium text-gray-500">Code</th>
                     <th className="text-left pb-3 font-medium text-gray-500">Subject</th>
-                    <th className="text-left pb-3 font-medium text-gray-500">Units</th>
                     <th className="text-left pb-3 font-medium text-gray-500">Schedule</th>
                     <th className="text-left pb-3 font-medium text-gray-500">Slots</th>
                     <th className="text-right pb-3 font-medium text-gray-500">Action</th>
@@ -402,7 +408,6 @@ export default function AssignSubjects() {
                       <tr key={s.id} className={`border-b last:border-0 ${isEnrolled ? 'bg-emerald-50/50' : ''}`}>
                         <td className="py-3 font-medium text-emerald-600">{s.subject_code}</td>
                         <td className="py-3">{s.subject_name}</td>
-                        <td className="py-3">{s.units}</td>
                         <td className="py-3 text-gray-500">{s.schedule}</td>
                         <td className="py-3">{s.enrolled_count}/{s.max_students}</td>
                         <td className="py-3 text-right">
@@ -429,9 +434,6 @@ export default function AssignSubjects() {
                   })}
                 </tbody>
               </table>
-              <div className="mt-3 text-right text-sm text-gray-500">
-                Total Units: {subjects.filter((s) => enrolledSubjects.includes(s.id)).reduce((sum, s) => sum + s.units, 0)} / {subjects.reduce((sum, s) => sum + s.units, 0)}
-              </div>
             </div>
           )}
         </div>
@@ -477,7 +479,6 @@ export default function AssignSubjects() {
                     <tr>
                       <th className="text-left pb-3 font-medium text-gray-500">Subject Name</th>
                       <th className="text-left pb-3 font-medium text-gray-500">Code</th>
-                      <th className="text-left pb-3 font-medium text-gray-500">Units</th>
                       <th className="text-left pb-3 font-medium text-gray-500">Grade</th>
                       <th className="text-left pb-3 font-medium text-gray-500">Credit Decision</th>
                     </tr>
@@ -490,7 +491,6 @@ export default function AssignSubjects() {
                       }`}>
                         <td className="py-3 font-medium">{subj.subject_name || '—'}</td>
                         <td className="py-3 text-gray-500">{subj.subject_code || '—'}</td>
-                        <td className="py-3">{subj.units || '—'}</td>
                         <td className="py-3">{subj.grade || '—'}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
@@ -554,6 +554,77 @@ export default function AssignSubjects() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Enrollment History Panel */}
+      {studentDetail && studentHistory.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={18} className="text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Enrollment History</h2>
+            <span className="ml-1 text-xs text-gray-400">{studentHistory.length} previous record{studentHistory.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="space-y-2">
+            {studentHistory.map((record) => (
+              <div key={record.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition"
+                  onClick={() => setExpandedRecord(expandedRecord === record.id ? null : record.id)}
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-800">
+                      {record.school_year || '—'} · {record.semester || '—'}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {record.grade_level || '—'} · {record.strand || '—'}
+                      {record.enrollment_type && (
+                        <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-blue-50 text-blue-700' :
+                          record.enrollment_type === 'TRANSFEREE' ? 'bg-amber-50 text-amber-700' :
+                          'bg-purple-50 text-purple-700'
+                        }`}>
+                          {record.enrollment_type.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-gray-400">
+                      {new Date(record.archived_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                    {expandedRecord === record.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                  </div>
+                </button>
+                {expandedRecord === record.id && (
+                  <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                    {record.subjects_snapshot && record.subjects_snapshot.length > 0 ? (
+                      <table className="w-full text-sm mt-3">
+                        <thead>
+                          <tr className="border-b text-left text-gray-500">
+                            <th className="pb-2 font-medium">Code</th>
+                            <th className="pb-2 font-medium">Subject</th>
+                            <th className="pb-2 font-medium">Schedule</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {record.subjects_snapshot.map((s, idx) => (
+                            <tr key={idx} className="border-b last:border-0">
+                              <td className="py-2 font-medium text-emerald-600">{s.subject_code || '—'}</td>
+                              <td className="py-2">{s.subject_name}</td>
+                              <td className="py-2 text-gray-500">{s.schedule || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-3">No subjects in this record.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

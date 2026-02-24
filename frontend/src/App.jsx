@@ -12,6 +12,7 @@ import PendingStudents from './pages/admin/PendingStudents';
 import AllStudents from './pages/admin/AllStudents';
 import StudentDetails from './pages/admin/StudentDetails';
 import Settings from './pages/admin/Settings';
+import AuditLogs from './pages/admin/AuditLogs';
 import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
 import Subjects from './pages/registrar/Subjects';
 import AssignSubjects from './pages/registrar/AssignSubjects';
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/admin/pending" element={<PrivateRoute roles={['admin']}><PendingStudents /></PrivateRoute>} />
       <Route path="/admin/students" element={<PrivateRoute roles={['admin']}><AllStudents /></PrivateRoute>} />
       <Route path="/admin/students/:id" element={<PrivateRoute roles={['admin']}><StudentDetails /></PrivateRoute>} />
+      <Route path="/admin/audit-logs" element={<PrivateRoute roles={['admin']}><AuditLogs /></PrivateRoute>} />
       <Route path="/admin/settings" element={<PrivateRoute roles={['admin']}><Settings /></PrivateRoute>} />
 
       {/* Registrar */}

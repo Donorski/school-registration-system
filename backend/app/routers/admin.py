@@ -17,11 +17,13 @@ from app.auth.jwt_handler import hash_password
 from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus, EnrollmentType
 from app.models.academic_calendar import AcademicCalendar
-from app.schemas.student import StudentResponse, StudentListResponse, EnrollmentApproval
+from app.schemas.student import StudentResponse, StudentListResponse, EnrollmentApproval, EnrollmentRecordResponse
 from app.schemas.user import AccountCreate, AccountListResponse, UserResponse, PasswordReset
 from app.schemas.common import MessageResponse, DashboardStats
 from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
+from app.utils.audit_log import create_audit_log
+from app.models.audit_log import AuditLog
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -46,6 +48,27 @@ class AcademicCalendarResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AuditLogResponse(BaseModel):
+    id: int
+    user_id: int | None
+    user_email: str
+    user_role: str
+    action: str
+    target_name: str | None
+    details: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogListResponse(BaseModel):
+    logs: list[AuditLogResponse]
+    total: int
+    page: int
+    per_page: int
+
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -166,18 +189,24 @@ def approve_student(
             NotificationType.STUDENT_APPROVED,
         )
 
-    db.commit()
     student_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    create_audit_log(db, _admin, "STUDENT_APPROVED", target_name=student_label)
+    db.commit()
     return MessageResponse(message=f"Student {student_label} has been approved")
+
+
+class DenyStudentRequest(BaseModel):
+    reason: str | None = None
 
 
 @router.put("/students/{student_id}/deny", response_model=MessageResponse)
 def deny_student(
     student_id: int,
+    body: DenyStudentRequest | None = None,
     _admin: User = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ):
-    """Deny a pending student registration."""
+    """Deny a pending student registration with an optional reason."""
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
@@ -188,18 +217,26 @@ def deny_student(
         )
 
     student.status = StudentStatus.DENIED
+    student.denial_reason = (body.reason.strip() if body and body.reason and body.reason.strip() else None)
     student.updated_at = datetime.now(timezone.utc)
 
-    # Notify student
+    # Build notification message
+    notif_body = "Your registration application has been denied."
+    if student.denial_reason:
+        notif_body += f" Reason: {student.denial_reason}"
+    else:
+        notif_body += " Please contact the admin for details."
+
     create_notification(
         db, student.user_id,
         "Application Denied",
-        "Your registration application has been denied. Please contact the admin for details.",
+        notif_body,
         NotificationType.APPLICATION_DENIED,
     )
 
-    db.commit()
     student_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    create_audit_log(db, _admin, "STUDENT_DENIED", target_name=student_label, details=student.denial_reason)
+    db.commit()
     return MessageResponse(message=f"Student {student_label} has been denied")
 
 
@@ -228,6 +265,8 @@ def delete_student(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
     user = student.user
+    student_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
+    create_audit_log(db, _admin, "STUDENT_DELETED", target_name=student_label)
     db.delete(student)
     if user:
         db.delete(user)
@@ -295,6 +334,19 @@ def get_dashboard_stats(
         by_sex=by_sex,
         by_enrollment_type=by_enrollment_type,
     )
+
+
+@router.get("/students/{student_id}/enrollment-history", response_model=list[EnrollmentRecordResponse])
+def get_student_enrollment_history(
+    student_id: int,
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Get enrollment history for a specific student, newest first."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    return student.enrollment_records
 
 
 @router.get("/students/{student_id}/documents")
@@ -410,6 +462,7 @@ def create_account(
         )
         db.add(student)
 
+    create_audit_log(db, _admin, "ACCOUNT_CREATED", target_name=f"{data.email} ({data.role})")
     db.commit()
     return MessageResponse(message=f"{data.role.capitalize()} account created successfully")
 
@@ -427,6 +480,7 @@ def reset_password(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     user.password_hash = hash_password(data.new_password)
+    create_audit_log(db, _admin, "PASSWORD_RESET", target_name=user.email)
     db.commit()
     return MessageResponse(message=f"Password reset successfully for {user.email}")
 
@@ -453,6 +507,7 @@ def delete_account(
     if student:
         db.delete(student)
 
+    create_audit_log(db, admin, "ACCOUNT_DELETED", target_name=f"{user.email} ({user.role.value})")
     db.delete(user)
     db.commit()
     return MessageResponse(message="Account deleted successfully")
@@ -500,6 +555,59 @@ def upsert_academic_calendar(
             updated_at=now,
         )
         db.add(calendar)
+    create_audit_log(db, _admin, "CALENDAR_UPDATED", target_name=f"{data.school_year} {data.semester}")
     db.commit()
     db.refresh(calendar)
     return calendar
+
+
+# ── Audit Logs ───────────────────────────────────────────────────────
+
+
+@router.get("/audit-logs", response_model=AuditLogListResponse)
+def list_audit_logs(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    action: str | None = None,
+    role: str | None = None,
+    search: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """List audit logs with optional filters and pagination."""
+    from sqlalchemy import or_
+
+    query = db.query(AuditLog)
+
+    if action:
+        query = query.filter(AuditLog.action == action.upper())
+    if role:
+        query = query.filter(AuditLog.user_role == role.lower())
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            or_(AuditLog.user_email.ilike(term), AuditLog.target_name.ilike(term))
+        )
+    if date_from:
+        try:
+            from datetime import date as date_type
+            df = datetime.fromisoformat(date_from)
+            query = query.filter(AuditLog.created_at >= df)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.fromisoformat(date_to)
+            # include the full end day
+            from datetime import timedelta
+            dt = dt.replace(hour=23, minute=59, second=59)
+            query = query.filter(AuditLog.created_at <= dt)
+        except ValueError:
+            pass
+
+    total = query.count()
+    logs = query.order_by(AuditLog.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+    return AuditLogListResponse(logs=logs, total=total, page=page, per_page=per_page)

@@ -8,7 +8,7 @@ from alembic import context
 from app.config import settings
 from app.database import Base
 # Import all models so Alembic detects them
-from app.models import User, Student, Subject, StudentSubject, Notification, AcademicCalendar  # noqa: F401
+from app.models import User, Student, Subject, StudentSubject, Notification, AcademicCalendar, EnrollmentRecord, AuditLog  # noqa: F401
 
 config = context.config
 

@@ -7,19 +7,12 @@ from pydantic import BaseModel, field_validator
 class SubjectCreate(BaseModel):
     subject_code: str
     subject_name: str
-    units: int
+    units: int = 0
     schedule: str
     strand: str
     grade_level: str
     semester: str = "1st Semester"
     max_students: int = 40
-
-    @field_validator("units")
-    @classmethod
-    def validate_units(cls, v: int) -> int:
-        if v < 1:
-            raise ValueError("Units must be at least 1")
-        return v
 
     @field_validator("max_students")
     @classmethod
