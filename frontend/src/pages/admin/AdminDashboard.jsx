@@ -292,6 +292,60 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* Announcement Board */}
+      <div className="mb-6 bg-white rounded-xl shadow-sm border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Megaphone size={18} className="text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Announcements</h2>
+            {announcements.length > 0 && (
+              <span className="ml-1 text-xs text-gray-400">{announcements.length} active</span>
+            )}
+          </div>
+          <button
+            onClick={() => setAnnModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+          >
+            <Plus size={15} />
+            New Announcement
+          </button>
+        </div>
+
+        {announcements.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Megaphone size={36} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No announcements yet. Post one for students to see.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map((ann) => (
+              <div key={ann.id} className={`flex items-start justify-between gap-3 p-4 rounded-xl border ${ann.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {ann.is_pinned && <Pin size={13} className="text-amber-500 shrink-0" />}
+                    <h3 className="font-semibold text-gray-800 text-sm truncate">{ann.title}</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                    <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    {ann.expires_at && (
+                      <span className="text-orange-500">Expires {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteAnnouncement(ann.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                  title="Delete"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {!loading && (
         <>
           {/* Row 1: Status Pie + Strand Bar */}
@@ -419,60 +473,6 @@ export default function AdminDashboard() {
           </div>
         </>
       )}
-      {/* Announcement Board */}
-      <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Megaphone size={18} className="text-emerald-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Announcements</h2>
-            {announcements.length > 0 && (
-              <span className="ml-1 text-xs text-gray-400">{announcements.length} active</span>
-            )}
-          </div>
-          <button
-            onClick={() => setAnnModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
-          >
-            <Plus size={15} />
-            New Announcement
-          </button>
-        </div>
-
-        {announcements.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
-            <Megaphone size={36} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No announcements yet. Post one for students to see.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {announcements.map((ann) => (
-              <div key={ann.id} className={`flex items-start justify-between gap-3 p-4 rounded-xl border ${ann.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {ann.is_pinned && <Pin size={13} className="text-amber-500 shrink-0" />}
-                    <h3 className="font-semibold text-gray-800 text-sm truncate">{ann.title}</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                    <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                    {ann.expires_at && (
-                      <span className="text-orange-500">Expires {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteAnnouncement(ann.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                  title="Delete"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* New Announcement Modal */}
       {annModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
