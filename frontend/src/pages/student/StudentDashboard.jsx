@@ -12,11 +12,26 @@ import { statusColor, getErrorMessage } from '../../utils/helpers';
 // ── Announcement Carousel ────────────────────────────────────────────────────
 function AnnouncementCarousel({ announcements }) {
   const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState('right'); // 'right' | 'left'
+  const [animKey, setAnimKey] = useState(0);
   const total = announcements.length;
   const ann = announcements[current];
 
-  const prev = () => setCurrent((c) => (c - 1 + total) % total);
-  const next = () => setCurrent((c) => (c + 1) % total);
+  const prev = () => {
+    setDirection('left');
+    setAnimKey((k) => k + 1);
+    setCurrent((c) => (c - 1 + total) % total);
+  };
+  const next = () => {
+    setDirection('right');
+    setAnimKey((k) => k + 1);
+    setCurrent((c) => (c + 1) % total);
+  };
+  const goTo = (i) => {
+    setDirection(i > current ? 'right' : 'left');
+    setAnimKey((k) => k + 1);
+    setCurrent(i);
+  };
 
   return (
     <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
@@ -51,9 +66,10 @@ function AnnouncementCarousel({ announcements }) {
       </div>
 
       {/* Slide */}
+      <div className="overflow-hidden rounded-xl">
       <div
-        key={ann.id}
-        className={`p-4 rounded-xl border shadow-sm animate-fade-in ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}
+        key={animKey}
+        className={`p-4 rounded-xl border shadow-sm ${direction === 'right' ? 'animate-slide-from-right' : 'animate-slide-from-left'} ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}
       >
         <div className="flex items-center gap-2 mb-1">
           {ann.is_pinned && (
@@ -73,6 +89,7 @@ function AnnouncementCarousel({ announcements }) {
           )}
         </div>
       </div>
+      </div>
 
       {/* Dot indicators */}
       {total > 1 && (
@@ -80,8 +97,8 @@ function AnnouncementCarousel({ announcements }) {
           {announcements.map((_, i) => (
             <button
               key={i}
-              onClick={() => setCurrent(i)}
-              className={`rounded-full transition-all ${i === current ? 'bg-emerald-600 w-4 h-2' : 'bg-emerald-200 w-2 h-2'}`}
+              onClick={() => goTo(i)}
+              className={`rounded-full transition-all duration-300 ${i === current ? 'bg-emerald-600 w-4 h-2' : 'bg-emerald-200 w-2 h-2'}`}
             />
           ))}
         </div>
