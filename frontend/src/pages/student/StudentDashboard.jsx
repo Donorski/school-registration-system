@@ -12,8 +12,9 @@ import { statusColor, getErrorMessage } from '../../utils/helpers';
 // ── Announcement Carousel ────────────────────────────────────────────────────
 function AnnouncementCarousel({ announcements }) {
   const [current, setCurrent] = useState(0);
-  const [direction, setDirection] = useState('right'); // 'right' | 'left'
+  const [direction, setDirection] = useState('right');
   const [animKey, setAnimKey] = useState(0);
+  const [paused, setPaused] = useState(false);
   const total = announcements.length;
   const ann = announcements[current];
 
@@ -33,8 +34,23 @@ function AnnouncementCarousel({ announcements }) {
     setCurrent(i);
   };
 
+  // Auto-slide every 5 seconds, pause on hover
+  useEffect(() => {
+    if (total <= 1 || paused) return;
+    const timer = setInterval(() => {
+      setDirection('right');
+      setAnimKey((k) => k + 1);
+      setCurrent((c) => (c + 1) % total);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [total, paused]);
+
   return (
-    <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
+    <div
+      className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
