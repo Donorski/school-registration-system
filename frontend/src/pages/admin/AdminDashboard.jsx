@@ -231,43 +231,43 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Link
           to="/admin/pending"
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="bg-yellow-100 p-3 rounded-xl group-hover:bg-yellow-200 transition">
-              <ClipboardList size={24} className="text-yellow-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <ClipboardList size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">Pending Registrations</h3>
-              <p className="text-sm text-gray-500">{stats?.pending_students ?? 0} students awaiting review</p>
+              <h3 className="font-semibold text-emerald-900">Pending Registrations</h3>
+              <p className="text-sm text-emerald-600">{stats?.pending_students ?? 0} students awaiting review</p>
             </div>
           </div>
         </Link>
         <Link
           to="/admin/students"
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="bg-emerald-100 p-3 rounded-xl group-hover:bg-emerald-200 transition">
-              <Users size={24} className="text-emerald-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <Users size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">All Students</h3>
-              <p className="text-sm text-gray-500">View and manage all student records</p>
+              <h3 className="font-semibold text-emerald-900">All Students</h3>
+              <p className="text-sm text-emerald-600">View and manage all student records</p>
             </div>
           </div>
         </Link>
         <button
           onClick={() => setReportModalOpen(true)}
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group text-left w-full"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group text-left w-full cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-xl group-hover:bg-blue-200 transition">
-              <FileText size={24} className="text-blue-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <FileText size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">Generate Report</h3>
-              <p className="text-sm text-gray-500">Download PDF enrollment report</p>
+              <h3 className="font-semibold text-emerald-900">Generate Report</h3>
+              <p className="text-sm text-emerald-600">Download PDF enrollment report</p>
             </div>
           </div>
         </button>
