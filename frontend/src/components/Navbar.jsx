@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import NotificationBell from './NotificationBell';
+import ConfirmModal from './ConfirmModal';
 
 const dashboardRoutes = {
   student: '/student/dashboard',
@@ -16,6 +18,8 @@ export default function Navbar({ onToggleSidebar, collapsed, onCollapse }) {
   const dashboardRoute = dashboardRoutes[user?.role] || '/';
   const displayName = user?.display_name || user?.email || '';
   const initials = displayName[0]?.toUpperCase() || '?';
+
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -91,7 +95,7 @@ export default function Navbar({ onToggleSidebar, collapsed, onCollapse }) {
         )}
 
         <button
-          onClick={handleLogout}
+          onClick={() => setLogoutConfirmOpen(true)}
           className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           title="Logout"
         >
@@ -99,6 +103,17 @@ export default function Navbar({ onToggleSidebar, collapsed, onCollapse }) {
           <span className="hidden sm:inline">Logout</span>
         </button>
       </div>
+
+      <ConfirmModal
+        open={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        onConfirm={handleLogout}
+        title="Sign out?"
+        message="You will be returned to the login page."
+        confirmText="Sign out"
+        cancelText="Stay"
+        variant="danger"
+      />
     </nav>
   );
 }

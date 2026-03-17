@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
-import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory } from '../../services/api';
+import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 
 // ── Enrollment Stepper ──────────────────────────────────────────────────────
@@ -72,10 +72,178 @@ function EnrollmentStepper({ profile, subjects }) {
   );
 }
 
+// ── Next Steps Guide ────────────────────────────────────────────────────────
+function NextStepsGuide({ profile, subjects, calendar }) {
+  const status = profile?.status;
+  const paymentStatus = profile?.payment_status || 'unpaid';
+  const hasSubjects = subjects.length > 0;
+
+  const deadline = calendar?.enrollment_end
+    ? new Date(calendar.enrollment_end).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+
+  // Fully enrolled — nothing to do
+  if (status === 'approved' && paymentStatus === 'verified' && hasSubjects) return null;
+
+  let step = null;
+
+  if (!profile?.first_name) {
+    step = {
+      color: 'blue',
+      title: 'Fill out your application form',
+      desc: 'Complete your enrollment application to get started. Make sure all required fields and documents are provided.',
+      action: { label: 'Go to Application Form', to: '/student/profile' },
+    };
+  } else if (status === 'pending') {
+    step = {
+      color: 'amber',
+      title: 'Your application is under review',
+      desc: 'The admin is reviewing your application. You will be notified once it has been approved or if further action is required.',
+      action: null,
+    };
+  } else if (status === 'denied') {
+    step = {
+      color: 'red',
+      title: 'Your application was not approved',
+      desc: `Please review the admin's remarks, update your application, and resubmit.`,
+      action: { label: 'Edit & Resubmit', to: '/student/profile' },
+    };
+  } else if (status === 'approved' && paymentStatus === 'unpaid') {
+    step = {
+      color: 'amber',
+      title: 'Pay your tuition fee and upload your receipt',
+      desc: (
+        <span>
+          Your application has been approved! Pay your tuition at the school cashier or via the designated payment channel,
+          then upload your payment receipt below.
+          {deadline && (
+            <span className="block mt-1.5 font-medium text-amber-800">
+              Enrollment deadline: {deadline}
+            </span>
+          )}
+        </span>
+      ),
+      action: null,
+    };
+  } else if (status === 'approved' && paymentStatus === 'pending_verification') {
+    step = {
+      color: 'blue',
+      title: 'Receipt submitted — awaiting verification',
+      desc: 'The registrar is reviewing your payment receipt. This usually takes 1–2 business days.',
+      action: null,
+    };
+  } else if (status === 'approved' && paymentStatus === 'verified' && !hasSubjects) {
+    step = {
+      color: 'green',
+      title: 'Payment verified — waiting for subject assignment',
+      desc: 'Your payment has been verified. The registrar will assign your subjects shortly. Check back soon!',
+      action: null,
+    };
+  }
+
+  if (!step) return null;
+
+  const colorMap = {
+    blue:  { bg: 'bg-blue-50',  border: 'border-blue-200',  icon: 'text-blue-500',  title: 'text-blue-800',  desc: 'text-blue-700',  btn: 'bg-blue-600 hover:bg-blue-700' },
+    amber: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500', title: 'text-amber-800', desc: 'text-amber-700', btn: 'bg-amber-600 hover:bg-amber-700' },
+    red:   { bg: 'bg-red-50',   border: 'border-red-200',   icon: 'text-red-500',   title: 'text-red-800',   desc: 'text-red-700',   btn: 'bg-red-600 hover:bg-red-700' },
+    green: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-500', title: 'text-green-800', desc: 'text-green-700', btn: 'bg-green-600 hover:bg-green-700' },
+  };
+  const c = colorMap[step.color];
+
+  return (
+    <div className={`mb-6 ${c.bg} border ${c.border} rounded-xl p-5`}>
+      <div className="flex items-start gap-3">
+        <Info size={20} className={`${c.icon} shrink-0 mt-0.5`} />
+        <div className="flex-1">
+          <h3 className={`font-semibold ${c.title}`}>{step.title}</h3>
+          <div className={`text-sm ${c.desc} mt-1`}>{step.desc}</div>
+          {step.action && (
+            <a
+              href={step.action.to}
+              className={`mt-3 inline-flex items-center gap-2 ${c.btn} text-white text-sm font-medium px-4 py-2 rounded-lg transition`}
+            >
+              {step.action.label}
+              <ArrowRight size={15} />
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Payment Info Card ────────────────────────────────────────────────────────
+function PaymentInfoCard({ calendar }) {
+  if (!calendar) return null;
+
+  const start = calendar.enrollment_start
+    ? new Date(calendar.enrollment_start).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+  const end = calendar.enrollment_end
+    ? new Date(calendar.enrollment_end).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border p-5 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Calendar size={17} className="text-emerald-600" />
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Enrollment Period</h2>
+      </div>
+      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+        {calendar.school_year && (
+          <div>
+            <span className="text-xs text-gray-400 block mb-0.5">School Year</span>
+            <span className="font-medium text-gray-800">{calendar.school_year}</span>
+          </div>
+        )}
+        {calendar.semester && (
+          <div>
+            <span className="text-xs text-gray-400 block mb-0.5">Semester</span>
+            <span className="font-medium text-gray-800">{calendar.semester} Semester</span>
+          </div>
+        )}
+        {start && (
+          <div>
+            <span className="text-xs text-gray-400 block mb-0.5">Starts</span>
+            <span className="font-medium text-gray-800">{start}</span>
+          </div>
+        )}
+        {end && (
+          <div>
+            <span className="text-xs text-gray-400 block mb-0.5">Deadline</span>
+            <span className="font-medium text-red-600">{end}</span>
+          </div>
+        )}
+        <div className="flex items-center">
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${calendar.is_open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${calendar.is_open ? 'bg-green-500' : 'bg-gray-400'}`} />
+            {calendar.is_open ? 'Enrollment Open' : 'Enrollment Closed'}
+          </span>
+        </div>
+      </div>
+      {/* Payment instructions */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-start gap-2">
+          <MapPin size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-gray-600">Where to pay</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Proceed to the <span className="font-medium text-gray-700">School Cashier</span> during office hours (Mon–Fri, 8:00 AM – 5:00 PM).
+              Keep your official receipt — you will need to upload a clear photo as proof of payment.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [history, setHistory] = useState([]);
+  const [calendar, setCalendar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -96,14 +264,16 @@ export default function StudentDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, subjectsRes, historyRes] = await Promise.all([
+        const [profileRes, subjectsRes, historyRes, calendarRes] = await Promise.all([
           getMyProfile(),
           getMySubjects(),
           getMyEnrollmentHistory(),
+          getEnrollmentStatus().catch(() => ({ data: null })),
         ]);
         setProfile(profileRes.data);
         setSubjects(subjectsRes.data);
         setHistory(historyRes.data);
+        setCalendar(calendarRes.data);
       } catch (err) {
         console.error('Dashboard load error:', err);
         setError(getErrorMessage(err));
@@ -170,8 +340,14 @@ export default function StudentDashboard() {
         <p className="text-gray-500">Here's your registration overview</p>
       </div>
 
+      {/* Enrollment Period Info */}
+      <PaymentInfoCard calendar={calendar} />
+
       {/* Enrollment Progress Stepper */}
       <EnrollmentStepper profile={profile} subjects={subjects} />
+
+      {/* Next Steps Guide */}
+      <NextStepsGuide profile={profile} subjects={subjects} calendar={calendar} />
 
       {/* Payment Flow Banners (only for approved students) */}
       {isApproved && paymentStatus === 'unpaid' && (

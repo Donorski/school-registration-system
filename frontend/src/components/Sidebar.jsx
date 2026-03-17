@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, BookOpen, UserPlus, CreditCard,
-  Settings, X, ScrollText,
+  Settings, X, ScrollText, Bell,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getPendingStudents, getPendingPayments } from '../services/api';
+import { NotificationContext } from '../context/NotificationContext';
 
 const links = {
   student: [
     { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/student/profile', label: 'Application Form', icon: Users },
+    { to: '/notifications', label: 'Notifications', icon: Bell, notifBadge: true },
     { to: '/student/settings', label: 'Settings', icon: Settings },
   ],
   admin: [
@@ -18,6 +20,7 @@ const links = {
     { to: '/admin/pending', label: 'Pending', icon: ClipboardList, badge: true },
     { to: '/admin/students', label: 'All Students', icon: Users },
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText },
+    { to: '/notifications', label: 'Notifications', icon: Bell, notifBadge: true },
     { to: '/admin/settings', label: 'Settings', icon: Settings },
   ],
   registrar: [
@@ -25,6 +28,7 @@ const links = {
     { to: '/registrar/payments', label: 'Payment Review', icon: CreditCard, badge: true },
     { to: '/registrar/subjects', label: 'Subjects', icon: BookOpen },
     { to: '/registrar/assign', label: 'Assign Subjects', icon: UserPlus },
+    { to: '/notifications', label: 'Notifications', icon: Bell, notifBadge: true },
   ],
 };
 
@@ -46,6 +50,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
   const navigate = useNavigate();
   const items = links[user?.role] || [];
   const [badgeCount, setBadgeCount] = useState(0);
+  const { unreadCount: notifCount } = useContext(NotificationContext);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -116,7 +121,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
 
         {/* Nav links */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-hidden">
-          {items.map(({ to, label, icon: Icon, badge }) => (
+          {items.map(({ to, label, icon: Icon, badge, notifBadge }) => (
             <NavLink
               key={to}
               to={to}
@@ -138,6 +143,14 @@ export default function Sidebar({ open, onClose, collapsed }) {
                     ${collapsed ? 'lg:absolute lg:-top-1 lg:-right-1 ml-auto' : 'ml-auto'}`}
                 >
                   {badgeCount > 99 ? '99+' : badgeCount}
+                </span>
+              )}
+              {notifBadge && notifCount > 0 && (
+                <span
+                  className={`flex items-center justify-center bg-blue-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 shrink-0
+                    ${collapsed ? 'lg:absolute lg:-top-1 lg:-right-1 ml-auto' : 'ml-auto'}`}
+                >
+                  {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
             </NavLink>

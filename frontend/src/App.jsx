@@ -17,6 +17,7 @@ import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
 import Subjects from './pages/registrar/Subjects';
 import AssignSubjects from './pages/registrar/AssignSubjects';
 import PaymentReview from './pages/registrar/PaymentReview';
+import Notifications from './pages/Notifications';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -52,6 +53,9 @@ export default function App() {
       <Route path="/registrar/subjects" element={<PrivateRoute roles={['registrar']}><Subjects /></PrivateRoute>} />
       <Route path="/registrar/payments" element={<PrivateRoute roles={['registrar']}><PaymentReview /></PrivateRoute>} />
       <Route path="/registrar/assign" element={<PrivateRoute roles={['registrar']}><AssignSubjects /></PrivateRoute>} />
+
+      {/* Notifications — shared across all roles */}
+      <Route path="/notifications" element={<PrivateRoute roles={['student', 'admin', 'registrar']}><Notifications /></PrivateRoute>} />
 
       {/* Catch all */}
       <Route path="*" element={<Navigate to={getHomeRedirect()} replace />} />

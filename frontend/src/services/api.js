@@ -126,6 +126,10 @@ export const markAllAsRead = () => api.put('/notifications/read-all');
 // --- Audit Logs ---
 export const getAuditLogs = (params) => api.get('/admin/audit-logs', { params });
 
+// --- Reports ---
+export const generateEnrollmentReport = (params) =>
+  api.get('/admin/reports/enrollment', { params, responseType: 'blob' });
+
 // --- Academic Calendar ---
 export const getAcademicCalendar = () => api.get('/admin/academic-calendar');
 export const updateAcademicCalendar = (data) => api.put('/admin/academic-calendar', data);

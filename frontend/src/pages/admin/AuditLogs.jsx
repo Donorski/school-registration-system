@@ -28,6 +28,8 @@ const ACTION_COLORS = {
   PASSWORD_RESET: 'bg-blue-100 text-blue-700',
   // Purple — archive
   ENROLLMENT_ARCHIVED: 'bg-purple-100 text-purple-700',
+  // Indigo — reports
+  REPORT_GENERATED: 'bg-indigo-100 text-indigo-700',
 };
 
 const ROLE_COLORS = {
@@ -45,6 +47,7 @@ const ACTION_OPTIONS = [
   'SUBJECT_ASSIGNED', 'SUBJECT_UNASSIGNED', 'BULK_SUBJECTS_ASSIGNED',
   'CREDITS_UPDATED',
   'APPLICATION_SUBMITTED', 'RECEIPT_UPLOADED', 'ENROLLMENT_ARCHIVED',
+  'REPORT_GENERATED',
 ];
 
 function formatAction(action) {

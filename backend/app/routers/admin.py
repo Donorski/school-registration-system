@@ -2,10 +2,11 @@
 
 import os
 from datetime import date, datetime, timezone
+from io import BytesIO
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -23,7 +24,9 @@ from app.schemas.common import MessageResponse, DashboardStats
 from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
 from app.utils.audit_log import create_audit_log
+from app.utils.report_pdf import build_enrollment_report
 from app.models.audit_log import AuditLog
+from app.models.student_subject import StudentSubject
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -611,3 +614,73 @@ def list_audit_logs(
     logs = query.order_by(AuditLog.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
     return AuditLogListResponse(logs=logs, total=total, page=page, per_page=per_page)
+
+
+# ── Reports ───────────────────────────────────────────────────────────
+
+
+@router.get("/reports/enrollment")
+def generate_enrollment_report(
+    school_year: str | None = Query(None),
+    semester: str | None = Query(None),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Generate and stream a PDF enrollment report. Filters are optional."""
+    base_q = db.query(Student)
+    if school_year:
+        base_q = base_q.filter(Student.school_year == school_year)
+    if semester:
+        base_q = base_q.filter(Student.semester == semester)
+
+    total_count    = base_q.count()
+    pending_count  = base_q.filter(Student.status == StudentStatus.PENDING).count()
+    approved_count = base_q.filter(Student.status == StudentStatus.APPROVED).count()
+    denied_count   = base_q.filter(Student.status == StudentStatus.DENIED).count()
+
+    # Fully enrolled = payment verified AND at least one subject assigned
+    enrolled_q = (
+        db.query(Student)
+        .filter(Student.payment_status == "verified")
+        .filter(
+            db.query(StudentSubject)
+            .filter(StudentSubject.student_id == Student.id)
+            .exists()
+        )
+    )
+    if school_year:
+        enrolled_q = enrolled_q.filter(Student.school_year == school_year)
+    if semester:
+        enrolled_q = enrolled_q.filter(Student.semester == semester)
+
+    enrolled_students = enrolled_q.order_by(Student.last_name, Student.first_name).all()
+
+    pdf_bytes = build_enrollment_report(
+        students=enrolled_students,
+        school_year=school_year,
+        semester=semester,
+        total_count=total_count,
+        pending_count=pending_count,
+        approved_count=approved_count,
+        denied_count=denied_count,
+        enrolled_count=len(enrolled_students),
+    )
+
+    parts = ["enrollment_report"]
+    if school_year:
+        parts.append(school_year.replace("-", "_"))
+    if semester:
+        parts.append(semester.lower().replace(" ", "_"))
+    filename = "_".join(parts) + ".pdf"
+
+    create_audit_log(
+        db, _admin, "REPORT_GENERATED",
+        details=f"SY: {school_year or 'all'}, Sem: {semester or 'all'}",
+    )
+    db.commit()
+
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
