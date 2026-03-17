@@ -345,23 +345,34 @@ export default function StudentDashboard() {
 
       {/* ── Announcements ── */}
       {announcements.length > 0 && (
-        <div className="mb-6 bg-white rounded-xl shadow-sm border p-6">
+        <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Megaphone size={18} className="text-emerald-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Announcements</h2>
+            <div className="bg-emerald-100 p-2 rounded-lg">
+              <Megaphone size={18} className="text-emerald-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-emerald-900">Announcements</h2>
+              <p className="text-xs text-emerald-600">{announcements.length} active announcement{announcements.length !== 1 ? 's' : ''}</p>
+            </div>
           </div>
           <div className="space-y-3">
             {announcements.map((ann) => (
-              <div key={ann.id} className={`p-4 rounded-xl border ${ann.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+              <div key={ann.id} className={`p-4 rounded-xl border shadow-sm ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  {ann.is_pinned && <Pin size={13} className="text-amber-500 shrink-0" />}
+                  {ann.is_pinned && (
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      <Pin size={10} /> Pinned
+                    </span>
+                  )}
                   <h3 className="font-semibold text-gray-800 text-sm">{ann.title}</h3>
                 </div>
                 <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                   {ann.expires_at && (
-                    <span className="text-orange-500">Until {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full font-medium">
+                      Until {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
                   )}
                 </div>
               </div>
