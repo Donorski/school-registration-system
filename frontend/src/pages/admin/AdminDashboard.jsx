@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye, Megaphone, Pin, Trash2, Plus } from 'lucide-react';
 import {
@@ -484,8 +485,8 @@ export default function AdminDashboard() {
           </div>
         </>
       )}
-      {/* New Announcement Modal */}
-      {annModalOpen && (
+      {/* New Announcement Modal — rendered via portal to escape CSS transform stacking context */}
+      {annModalOpen && createPortal(
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
@@ -574,7 +575,7 @@ export default function AdminDashboard() {
           </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* PDF Preview Modal */}
       {previewUrl && (
@@ -611,8 +612,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Generate Report Modal */}
-      {reportModalOpen && (
+      {/* Generate Report Modal — rendered via portal to escape CSS transform stacking context */}
+      {reportModalOpen && createPortal(
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
@@ -726,7 +727,7 @@ export default function AdminDashboard() {
           </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </DashboardLayout>
   );
 }
