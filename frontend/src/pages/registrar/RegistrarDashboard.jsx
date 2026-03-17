@@ -135,46 +135,46 @@ export default function RegistrarDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Link
           to="/registrar/payments"
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group animate-slide-up"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group cursor-pointer animate-slide-up"
           style={{ animationDelay: '160ms' }}
         >
           <div className="flex items-center gap-4">
-            <div className="bg-amber-100 p-3 rounded-xl group-hover:bg-amber-200 transition">
-              <CreditCard size={24} className="text-amber-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <CreditCard size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">Payment Review</h3>
-              <p className="text-sm text-gray-500">Verify student payment receipts</p>
+              <h3 className="font-semibold text-emerald-900">Payment Review</h3>
+              <p className="text-sm text-emerald-600">Verify student payment receipts</p>
             </div>
           </div>
         </Link>
         <Link
           to="/registrar/subjects"
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group animate-slide-up"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group cursor-pointer animate-slide-up"
           style={{ animationDelay: '240ms' }}
         >
           <div className="flex items-center gap-4">
-            <div className="bg-emerald-100 p-3 rounded-xl group-hover:bg-emerald-200 transition">
-              <BookOpen size={24} className="text-emerald-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <BookOpen size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">Manage Subjects</h3>
-              <p className="text-sm text-gray-500">Create, edit, and delete subjects</p>
+              <h3 className="font-semibold text-emerald-900">Manage Subjects</h3>
+              <p className="text-sm text-emerald-600">Create, edit, and delete subjects</p>
             </div>
           </div>
         </Link>
         <Link
           to="/registrar/assign"
-          className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition group animate-slide-up"
+          className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-6 hover:bg-emerald-100 hover:shadow-md transition group cursor-pointer animate-slide-up"
           style={{ animationDelay: '320ms' }}
         >
           <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-xl group-hover:bg-green-200 transition">
-              <UserPlus size={24} className="text-green-600" />
+            <div className="bg-emerald-200 p-3 rounded-xl group-hover:bg-emerald-300 transition">
+              <UserPlus size={24} className="text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">Assign Subjects</h3>
-              <p className="text-sm text-gray-500">Enroll students into subjects</p>
+              <h3 className="font-semibold text-emerald-900">Assign Subjects</h3>
+              <p className="text-sm text-emerald-600">Enroll students into subjects</p>
             </div>
           </div>
         </Link>
