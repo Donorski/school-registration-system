@@ -208,7 +208,7 @@ export default function PaymentReview() {
                     </h2>
                     {studentDetail.enrollment_type && (
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        studentDetail.enrollment_type === 'NEW_ENROLLEE' ? 'bg-blue-50 text-blue-700' :
+                        studentDetail.enrollment_type === 'NEW_ENROLLEE' ? 'bg-emerald-50 text-emerald-700' :
                         studentDetail.enrollment_type === 'TRANSFEREE' ? 'bg-amber-50 text-amber-700' :
                         'bg-purple-50 text-purple-700'
                       }`}>

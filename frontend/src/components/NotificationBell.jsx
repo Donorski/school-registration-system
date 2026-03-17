@@ -7,7 +7,7 @@ const TYPE_STYLES = {
   application_denied: 'bg-red-100 text-red-600',
   payment_verified: 'bg-green-100 text-green-600',
   payment_rejected: 'bg-red-100 text-red-600',
-  subjects_assigned: 'bg-blue-100 text-blue-600',
+  subjects_assigned: 'bg-emerald-100 text-emerald-600',
   new_form_submitted: 'bg-yellow-100 text-yellow-600',
   new_receipt_uploaded: 'bg-purple-100 text-purple-600',
   student_approved: 'bg-green-100 text-green-600',
@@ -76,7 +76,7 @@ export default function NotificationBell() {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 transition"
+                  className="text-xs text-emerald-600 hover:text-emerald-800 flex items-center gap-1 transition"
                 >
                   <CheckCheck size={14} />
                   Mark all read
@@ -101,7 +101,7 @@ export default function NotificationBell() {
                 <div
                   key={notif.id}
                   className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${
-                    !notif.is_read ? 'bg-blue-50/50' : ''
+                    !notif.is_read ? 'bg-emerald-50/50' : ''
                   }`}
                   onClick={() => {
                     if (!notif.is_read) markAsRead(notif.id);
@@ -128,7 +128,7 @@ export default function NotificationBell() {
                   {/* Unread indicator */}
                   {!notif.is_read && (
                     <div className="mt-2 flex-shrink-0">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full" />
                     </div>
                   )}
                 </div>

@@ -583,13 +583,13 @@ export default function AdminDashboard() {
           {/* Preview toolbar */}
           <div className="flex items-center justify-between px-6 py-3 bg-gray-900 text-white shrink-0">
             <div className="flex items-center gap-2">
-              <FileText size={18} className="text-blue-400" />
+              <FileText size={18} className="text-emerald-400" />
               <span className="text-sm font-medium">{previewFilename}</span>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={handleDownloadFromPreview}
-                className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-lg transition"
               >
                 <Download size={15} />
                 Download

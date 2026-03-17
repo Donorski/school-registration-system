@@ -32,7 +32,7 @@ const TYPE_META = {
   application_denied:   { icon: XCircle,      style: 'bg-red-100 text-red-600' },
   payment_verified:     { icon: CreditCard,   style: 'bg-green-100 text-green-600' },
   payment_rejected:     { icon: AlertCircle,  style: 'bg-red-100 text-red-600' },
-  subjects_assigned:    { icon: BookOpen,     style: 'bg-blue-100 text-blue-600' },
+  subjects_assigned:    { icon: BookOpen,     style: 'bg-emerald-100 text-emerald-600' },
   new_form_submitted:   { icon: FileText,     style: 'bg-yellow-100 text-yellow-600' },
   new_receipt_uploaded: { icon: CreditCard,   style: 'bg-purple-100 text-purple-600' },
   student_approved:     { icon: User,         style: 'bg-green-100 text-green-600' },
@@ -76,7 +76,7 @@ export default function Notifications() {
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 border border-emerald-200 rounded-lg transition"
             >
               <CheckCheck size={16} />
               Mark all as read
@@ -143,7 +143,7 @@ export default function Notifications() {
                     onClick={handleClick}
                     className={`flex items-start gap-4 px-5 py-4 transition hover:bg-gray-50 ${
                       link ? 'cursor-pointer' : 'cursor-default'
-                    } ${!notif.is_read ? 'bg-blue-50/40' : ''}`}
+                    } ${!notif.is_read ? 'bg-emerald-50/40' : ''}`}
                   >
                     {/* Icon */}
                     <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${meta.style}`}>
@@ -166,7 +166,7 @@ export default function Notifications() {
 
                     {/* Unread dot */}
                     {!notif.is_read && (
-                      <div className="mt-2 w-2.5 h-2.5 bg-blue-500 rounded-full flex-shrink-0" />
+                      <div className="mt-2 w-2.5 h-2.5 bg-emerald-500 rounded-full flex-shrink-0" />
                     )}
                   </div>
                 );

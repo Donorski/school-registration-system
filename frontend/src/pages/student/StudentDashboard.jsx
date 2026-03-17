@@ -89,7 +89,7 @@ function NextStepsGuide({ profile, subjects, calendar }) {
 
   if (!profile?.first_name) {
     step = {
-      color: 'blue',
+      color: 'emerald',
       title: 'Fill out your application form',
       desc: 'Complete your enrollment application to get started. Make sure all required fields and documents are provided.',
       action: { label: 'Go to Application Form', to: '/student/profile' },
@@ -144,10 +144,10 @@ function NextStepsGuide({ profile, subjects, calendar }) {
   if (!step) return null;
 
   const colorMap = {
-    blue:  { bg: 'bg-blue-50',  border: 'border-blue-200',  icon: 'text-blue-500',  title: 'text-blue-800',  desc: 'text-blue-700',  btn: 'bg-blue-600 hover:bg-blue-700' },
-    amber: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500', title: 'text-amber-800', desc: 'text-amber-700', btn: 'bg-amber-600 hover:bg-amber-700' },
-    red:   { bg: 'bg-red-50',   border: 'border-red-200',   icon: 'text-red-500',   title: 'text-red-800',   desc: 'text-red-700',   btn: 'bg-red-600 hover:bg-red-700' },
-    green: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-500', title: 'text-green-800', desc: 'text-green-700', btn: 'bg-green-600 hover:bg-green-700' },
+    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-500', title: 'text-emerald-800', desc: 'text-emerald-700', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+    amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-500',   title: 'text-amber-800',   desc: 'text-amber-700',   btn: 'bg-amber-600 hover:bg-amber-700' },
+    red:     { bg: 'bg-red-50',     border: 'border-red-200',     icon: 'text-red-500',     title: 'text-red-800',     desc: 'text-red-700',     btn: 'bg-red-600 hover:bg-red-700' },
+    green:   { bg: 'bg-green-50',   border: 'border-green-200',   icon: 'text-green-500',   title: 'text-green-800',   desc: 'text-green-700',   btn: 'bg-green-600 hover:bg-green-700' },
   };
   const c = colorMap[step.color];
 
@@ -394,21 +394,21 @@ export default function StudentDashboard() {
       )}
 
       {isApproved && paymentStatus === 'pending_verification' && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <div className="mb-6 bg-teal-50 border border-teal-200 rounded-xl p-5">
           <div className="flex items-start gap-3">
-            <Clock size={20} className="text-blue-600 shrink-0 mt-0.5" />
+            <Clock size={20} className="text-teal-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-800">Receipt submitted — waiting for verification</h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <h3 className="font-semibold text-teal-800">Receipt submitted — waiting for verification</h3>
+              <p className="text-sm text-teal-700 mt-1">
                 The registrar will review your payment receipt shortly.
               </p>
               {profile?.payment_receipt_path && (
                 <div className="mt-3">
-                  <p className="text-xs text-blue-600 mb-2">Uploaded receipt:</p>
+                  <p className="text-xs text-teal-600 mb-2">Uploaded receipt:</p>
                   <img
                     src={`/uploads/${profile.payment_receipt_path}`}
                     alt="Payment receipt"
-                    className="max-w-xs rounded-lg border border-blue-200 shadow-sm"
+                    className="max-w-xs rounded-lg border border-teal-200 shadow-sm"
                   />
                 </div>
               )}
@@ -593,7 +593,7 @@ export default function StudentDashboard() {
                         {record.grade_level || '—'} · {record.strand || '—'}
                         {record.enrollment_type && (
                           <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-blue-50 text-blue-700' :
+                            record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-emerald-50 text-emerald-700' :
                             record.enrollment_type === 'TRANSFEREE' ? 'bg-amber-50 text-amber-700' :
                             'bg-purple-50 text-purple-700'
                           }`}>

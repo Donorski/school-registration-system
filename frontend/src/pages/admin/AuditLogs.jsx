@@ -19,17 +19,17 @@ const ACTION_COLORS = {
   SUBJECT_DELETED: 'bg-red-100 text-red-700',
   SUBJECT_UNASSIGNED: 'bg-red-100 text-red-700',
   ACCOUNT_DELETED: 'bg-red-100 text-red-700',
-  // Blue — informational
-  APPLICATION_SUBMITTED: 'bg-blue-100 text-blue-700',
-  RECEIPT_UPLOADED: 'bg-blue-100 text-blue-700',
-  SUBJECT_UPDATED: 'bg-blue-100 text-blue-700',
-  CREDITS_UPDATED: 'bg-blue-100 text-blue-700',
-  CALENDAR_UPDATED: 'bg-blue-100 text-blue-700',
-  PASSWORD_RESET: 'bg-blue-100 text-blue-700',
+  // Teal — informational
+  APPLICATION_SUBMITTED: 'bg-teal-100 text-teal-700',
+  RECEIPT_UPLOADED: 'bg-teal-100 text-teal-700',
+  SUBJECT_UPDATED: 'bg-teal-100 text-teal-700',
+  CREDITS_UPDATED: 'bg-teal-100 text-teal-700',
+  CALENDAR_UPDATED: 'bg-teal-100 text-teal-700',
+  PASSWORD_RESET: 'bg-teal-100 text-teal-700',
   // Purple — archive
   ENROLLMENT_ARCHIVED: 'bg-purple-100 text-purple-700',
-  // Indigo — reports
-  REPORT_GENERATED: 'bg-indigo-100 text-indigo-700',
+  // Emerald — reports
+  REPORT_GENERATED: 'bg-emerald-100 text-emerald-700',
 };
 
 const ROLE_COLORS = {

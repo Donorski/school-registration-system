@@ -147,7 +147,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
               )}
               {notifBadge && notifCount > 0 && (
                 <span
-                  className={`flex items-center justify-center bg-blue-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 shrink-0
+                  className={`flex items-center justify-center bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 shrink-0
                     ${collapsed ? 'lg:absolute lg:-top-1 lg:-right-1 ml-auto' : 'ml-auto'}`}
                 >
                   {notifCount > 99 ? '99+' : notifCount}

@@ -12,7 +12,7 @@ import { getErrorMessage } from '../../utils/helpers';
 const enrollmentTypeBadge = (type) => {
   if (!type) return null;
   const colors = {
-    NEW_ENROLLEE: 'bg-blue-50 text-blue-700',
+    NEW_ENROLLEE: 'bg-emerald-50 text-emerald-700',
     TRANSFEREE: 'bg-amber-50 text-amber-700',
     RE_ENROLLEE: 'bg-purple-50 text-purple-700',
   };
@@ -580,7 +580,7 @@ export default function AssignSubjects() {
                       {record.grade_level || '—'} · {record.strand || '—'}
                       {record.enrollment_type && (
                         <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-blue-50 text-blue-700' :
+                          record.enrollment_type === 'NEW_ENROLLEE' ? 'bg-emerald-50 text-emerald-700' :
                           record.enrollment_type === 'TRANSFEREE' ? 'bg-amber-50 text-amber-700' :
                           'bg-purple-50 text-purple-700'
                         }`}>
