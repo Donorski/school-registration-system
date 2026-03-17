@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -8,6 +8,87 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
 import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
+
+// ── Announcement Carousel ────────────────────────────────────────────────────
+function AnnouncementCarousel({ announcements }) {
+  const [current, setCurrent] = useState(0);
+  const total = announcements.length;
+  const ann = announcements[current];
+
+  const prev = () => setCurrent((c) => (c - 1 + total) % total);
+  const next = () => setCurrent((c) => (c + 1) % total);
+
+  return (
+    <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="bg-emerald-100 p-2 rounded-lg">
+            <Megaphone size={18} className="text-emerald-700" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-emerald-900">Announcements</h2>
+            <p className="text-xs text-emerald-600">{total} active announcement{total !== 1 ? 's' : ''}</p>
+          </div>
+        </div>
+        {/* Prev / Next buttons — only show if more than 1 */}
+        {total > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={prev}
+              className="p-1.5 rounded-lg bg-white border border-emerald-200 hover:bg-emerald-100 text-emerald-700 transition"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={next}
+              className="p-1.5 rounded-lg bg-white border border-emerald-200 hover:bg-emerald-100 text-emerald-700 transition"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Slide */}
+      <div
+        key={ann.id}
+        className={`p-4 rounded-xl border shadow-sm animate-fade-in ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          {ann.is_pinned && (
+            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              <Pin size={10} /> Pinned
+            </span>
+          )}
+          <h3 className="font-semibold text-gray-800 text-sm">{ann.title}</h3>
+        </div>
+        <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
+        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+          <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+          {ann.expires_at && (
+            <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full font-medium">
+              Until {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      {total > 1 && (
+        <div className="flex justify-center gap-1.5 mt-3">
+          {announcements.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`rounded-full transition-all ${i === current ? 'bg-emerald-600 w-4 h-2' : 'bg-emerald-200 w-2 h-2'}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Enrollment Stepper ──────────────────────────────────────────────────────
 const STEPS = ['Apply', 'Approved', 'Pay', 'Verified', 'Enrolled'];
@@ -343,42 +424,9 @@ export default function StudentDashboard() {
         <p className="text-gray-500">Here's your registration overview</p>
       </div>
 
-      {/* ── Announcements ── */}
+      {/* ── Announcements Carousel ── */}
       {announcements.length > 0 && (
-        <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="bg-emerald-100 p-2 rounded-lg">
-              <Megaphone size={18} className="text-emerald-700" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-emerald-900">Announcements</h2>
-              <p className="text-xs text-emerald-600">{announcements.length} active announcement{announcements.length !== 1 ? 's' : ''}</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {announcements.map((ann) => (
-              <div key={ann.id} className={`p-4 rounded-xl border shadow-sm ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  {ann.is_pinned && (
-                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                      <Pin size={10} /> Pinned
-                    </span>
-                  )}
-                  <h3 className="font-semibold text-gray-800 text-sm">{ann.title}</h3>
-                </div>
-                <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                  <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                  {ann.expires_at && (
-                    <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full font-medium">
-                      Until {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <AnnouncementCarousel announcements={announcements} />
       )}
 
       {/* Enrollment Period Info */}
