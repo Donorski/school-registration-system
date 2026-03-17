@@ -27,6 +27,7 @@ from app.utils.audit_log import create_audit_log
 from app.utils.report_pdf import build_enrollment_report
 from app.models.audit_log import AuditLog
 from app.models.student_subject import StudentSubject
+from app.models.announcement import Announcement
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -684,3 +685,76 @@ def generate_enrollment_report(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Announcements ─────────────────────────────────────────────────────────────
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    message: str
+    is_pinned: bool = False
+    expires_at: Optional[date] = None
+
+
+class AnnouncementResponse(BaseModel):
+    id: int
+    title: str
+    message: str
+    is_pinned: bool
+    expires_at: Optional[date]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/announcements", response_model=list[AnnouncementResponse])
+def list_announcements(
+    db: Session = Depends(get_db),
+):
+    """Public — returns all non-expired announcements (pinned first, then newest)."""
+    today = date.today()
+    items = (
+        db.query(Announcement)
+        .filter(
+            (Announcement.expires_at == None) | (Announcement.expires_at >= today)
+        )
+        .order_by(Announcement.is_pinned.desc(), Announcement.created_at.desc())
+        .all()
+    )
+    return items
+
+
+@router.post("/announcements", response_model=AnnouncementResponse, status_code=201)
+def create_announcement(
+    body: AnnouncementCreate,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    ann = Announcement(
+        title=body.title,
+        message=body.message,
+        is_pinned=body.is_pinned,
+        expires_at=body.expires_at,
+    )
+    db.add(ann)
+    db.flush()
+    create_audit_log(db, _admin, "ANNOUNCEMENT_POSTED", details=body.title)
+    db.commit()
+    db.refresh(ann)
+    return ann
+
+
+@router.delete("/announcements/{ann_id}", response_model=MessageResponse)
+def delete_announcement(
+    ann_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    ann = db.query(Announcement).filter(Announcement.id == ann_id).first()
+    if not ann:
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    create_audit_log(db, _admin, "ANNOUNCEMENT_DELETED", details=ann.title)
+    db.delete(ann)
+    db.commit()
+    return {"message": "Announcement deleted"}

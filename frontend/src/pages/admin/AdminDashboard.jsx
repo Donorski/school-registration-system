@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye, Printer } from 'lucide-react';
+import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye, Megaphone, Pin, Trash2, Plus } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonLoader';
-import { getDashboardStats, generateEnrollmentReport } from '../../services/api';
+import { getDashboardStats, generateEnrollmentReport, getAnnouncements, createAnnouncement, deleteAnnouncement } from '../../services/api';
 
 /** Animates a number from 0 to `target` over `duration` ms using ease-out cubic. */
 function useCountUp(target, duration = 900) {
@@ -59,6 +59,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
+  const [annModalOpen, setAnnModalOpen] = useState(false);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annMessage, setAnnMessage] = useState('');
+  const [annPinned, setAnnPinned] = useState(false);
+  const [annExpiry, setAnnExpiry] = useState('');
+  const [annSaving, setAnnSaving] = useState(false);
+
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportSchoolYear, setReportSchoolYear] = useState('');
@@ -71,7 +80,42 @@ export default function AdminDashboard() {
     getDashboardStats()
       .then((res) => setStats(res.data))
       .finally(() => setLoading(false));
+    getAnnouncements().then((res) => setAnnouncements(res.data)).catch(() => {});
   }, []);
+
+  const handlePostAnnouncement = async () => {
+    if (!annTitle.trim() || !annMessage.trim()) {
+      toast.error('Title and message are required');
+      return;
+    }
+    setAnnSaving(true);
+    try {
+      const res = await createAnnouncement({
+        title: annTitle.trim(),
+        message: annMessage.trim(),
+        is_pinned: annPinned,
+        expires_at: annExpiry || null,
+      });
+      setAnnouncements((prev) => [res.data, ...prev].sort((a, b) => b.is_pinned - a.is_pinned));
+      setAnnTitle(''); setAnnMessage(''); setAnnPinned(false); setAnnExpiry('');
+      setAnnModalOpen(false);
+      toast.success('Announcement posted');
+    } catch {
+      toast.error('Failed to post announcement');
+    } finally {
+      setAnnSaving(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      await deleteAnnouncement(id);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      toast.success('Announcement deleted');
+    } catch {
+      toast.error('Failed to delete announcement');
+    }
+  };
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload?.length) {
@@ -375,6 +419,135 @@ export default function AdminDashboard() {
           </div>
         </>
       )}
+      {/* Announcement Board */}
+      <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Megaphone size={18} className="text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Announcements</h2>
+            {announcements.length > 0 && (
+              <span className="ml-1 text-xs text-gray-400">{announcements.length} active</span>
+            )}
+          </div>
+          <button
+            onClick={() => setAnnModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+          >
+            <Plus size={15} />
+            New Announcement
+          </button>
+        </div>
+
+        {announcements.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Megaphone size={36} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No announcements yet. Post one for students to see.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map((ann) => (
+              <div key={ann.id} className={`flex items-start justify-between gap-3 p-4 rounded-xl border ${ann.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {ann.is_pinned && <Pin size={13} className="text-amber-500 shrink-0" />}
+                    <h3 className="font-semibold text-gray-800 text-sm truncate">{ann.title}</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                    <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    {ann.expires_at && (
+                      <span className="text-orange-500">Expires {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteAnnouncement(ann.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                  title="Delete"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* New Announcement Modal */}
+      {annModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <Megaphone size={20} className="text-emerald-600" />
+                <h2 className="text-lg font-semibold text-gray-800">New Announcement</h2>
+              </div>
+              <button onClick={() => setAnnModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={annTitle}
+                  onChange={(e) => setAnnTitle(e.target.value)}
+                  placeholder="e.g. Enrollment is now open"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea
+                  value={annMessage}
+                  onChange={(e) => setAnnMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Write your announcement here..."
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Expiry Date <span className="text-gray-400 font-normal">(optional — auto-hides after this date)</span>
+                </label>
+                <input
+                  type="date"
+                  value={annExpiry}
+                  onChange={(e) => setAnnExpiry(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={annPinned}
+                  onChange={(e) => setAnnPinned(e.target.checked)}
+                  className="w-4 h-4 accent-amber-500"
+                />
+                <span className="text-sm text-gray-700">Pin this announcement (shows at the top)</span>
+              </label>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+              <button
+                onClick={() => setAnnModalOpen(false)}
+                disabled={annSaving}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePostAnnouncement}
+                disabled={annSaving}
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-60"
+              >
+                {annSaving ? 'Posting...' : 'Post Announcement'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PDF Preview Modal */}
       {previewUrl && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">

@@ -95,6 +95,9 @@ export const getAccounts = (params) => api.get('/admin/accounts', { params });
 export const createAccount = (data) => api.post('/admin/accounts', data);
 export const deleteAccount = (id) => api.delete(`/admin/accounts/${id}`);
 export const resetAccountPassword = (id, data) => api.put(`/admin/accounts/${id}/reset-password`, data);
+export const getAnnouncements = () => api.get('/admin/announcements');
+export const createAnnouncement = (data) => api.post('/admin/announcements', data);
+export const deleteAnnouncement = (id) => api.delete(`/admin/announcements/${id}`);
 
 // --- Registrar ---
 export const getApprovedStudents = (params) => api.get('/registrar/students/approved', { params });

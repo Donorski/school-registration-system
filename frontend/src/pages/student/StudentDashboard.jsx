@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
-import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus } from '../../services/api';
+import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 
 // ── Enrollment Stepper ──────────────────────────────────────────────────────
@@ -244,6 +244,7 @@ export default function StudentDashboard() {
   const [subjects, setSubjects] = useState([]);
   const [history, setHistory] = useState([]);
   const [calendar, setCalendar] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -264,16 +265,18 @@ export default function StudentDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, subjectsRes, historyRes, calendarRes] = await Promise.all([
+        const [profileRes, subjectsRes, historyRes, calendarRes, annRes] = await Promise.all([
           getMyProfile(),
           getMySubjects(),
           getMyEnrollmentHistory(),
           getEnrollmentStatus().catch(() => ({ data: null })),
+          getAnnouncements().catch(() => ({ data: [] })),
         ]);
         setProfile(profileRes.data);
         setSubjects(subjectsRes.data);
         setHistory(historyRes.data);
         setCalendar(calendarRes.data);
+        setAnnouncements(annRes.data);
       } catch (err) {
         console.error('Dashboard load error:', err);
         setError(getErrorMessage(err));
@@ -538,6 +541,33 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {/* ── Announcements ── */}
+      {announcements.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Megaphone size={18} className="text-emerald-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Announcements</h2>
+          </div>
+          <div className="space-y-3">
+            {announcements.map((ann) => (
+              <div key={ann.id} className={`p-4 rounded-xl border ${ann.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  {ann.is_pinned && <Pin size={13} className="text-amber-500 shrink-0" />}
+                  <h3 className="font-semibold text-gray-800 text-sm">{ann.title}</h3>
+                </div>
+                <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                  <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                  {ann.expires_at && (
+                    <span className="text-orange-500">Until {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Enrollment History ── */}
       {history.length > 0 && (
