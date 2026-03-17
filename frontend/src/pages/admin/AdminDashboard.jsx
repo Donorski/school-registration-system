@@ -486,7 +486,8 @@ export default function AdminDashboard() {
       )}
       {/* New Announcement Modal */}
       {annModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
@@ -571,6 +572,7 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
@@ -611,17 +613,18 @@ export default function AdminDashboard() {
 
       {/* Generate Report Modal */}
       {reportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-2 rounded-lg">
                   <FileText size={20} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">Generate Enrollment Report</h2>
-                  <p className="text-xs text-blue-100">Export student data as PDF</p>
+                  <p className="text-xs text-emerald-100">Export student data as PDF</p>
                 </div>
               </div>
               <button
@@ -649,7 +652,7 @@ export default function AdminDashboard() {
                   value={reportSchoolYear}
                   onChange={(e) => setReportSchoolYear(e.target.value)}
                   disabled={reportGenerating}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
                 />
               </div>
 
@@ -661,7 +664,7 @@ export default function AdminDashboard() {
                   value={reportSemester}
                   onChange={(e) => setReportSemester(e.target.value)}
                   disabled={reportGenerating}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
                 >
                   <option value="">All Semesters</option>
                   <option value="1st Semester">1st Semester</option>
@@ -702,7 +705,7 @@ export default function AdminDashboard() {
               <button
                 onClick={handleDownload}
                 disabled={reportGenerating}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {reportGenerating ? (
                   <>
@@ -720,6 +723,7 @@ export default function AdminDashboard() {
                 )}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
