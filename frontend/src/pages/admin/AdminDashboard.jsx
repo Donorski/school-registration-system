@@ -486,8 +486,8 @@ export default function AdminDashboard() {
       )}
       {/* New Announcement Modal */}
       {annModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -611,18 +611,23 @@ export default function AdminDashboard() {
 
       {/* Generate Report Modal */}
       {reportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-800">Generate Enrollment Report</h2>
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <FileText size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Generate Enrollment Report</h2>
+                  <p className="text-xs text-blue-100">Export student data as PDF</p>
+                </div>
               </div>
               <button
                 onClick={() => setReportModalOpen(false)}
                 disabled={reportGenerating}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition disabled:opacity-50 text-white"
               >
                 <X size={18} />
               </button>
@@ -635,7 +640,7 @@ export default function AdminDashboard() {
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
                   School Year <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
@@ -644,19 +649,19 @@ export default function AdminDashboard() {
                   value={reportSchoolYear}
                   onChange={(e) => setReportSchoolYear(e.target.value)}
                   disabled={reportGenerating}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Semester <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <select
                   value={reportSemester}
                   onChange={(e) => setReportSemester(e.target.value)}
                   disabled={reportGenerating}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
                 >
                   <option value="">All Semesters</option>
                   <option value="1st Semester">1st Semester</option>
