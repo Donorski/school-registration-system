@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from pydantic import BaseModel
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from app.database import get_db
 from app.auth.jwt_handler import hash_password, verify_password, create_access_token
@@ -11,6 +14,7 @@ from app.auth.dependencies import get_current_user
 from app.models.user import User, UserRole
 from app.models.student import Student, StudentStatus
 from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse
+from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 limiter = Limiter(key_func=get_remote_address)
@@ -51,7 +55,7 @@ def register(request: Request, data: UserRegister, db: Session = Depends(get_db)
 def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
     """Login for all user roles. Returns a JWT access token."""
     user = db.query(User).filter(User.email == data.email).first()
-    if not user or not verify_password(data.password, user.password_hash):
+    if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -62,6 +66,57 @@ def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
             detail="Account is deactivated",
         )
 
+    token = create_access_token({"user_id": user.id, "role": user.role.value})
+    return TokenResponse(access_token=token, role=user.role.value)
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str  # Google ID token
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_auth(data: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Sign in or register via Google OAuth. Creates student account if new user."""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured")
+
+    try:
+        id_info = id_token.verify_oauth2_token(
+            data.credential,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    google_id = id_info["sub"]
+    email = id_info.get("email", "")
+
+    # Find by google_id first, then fall back to email
+    user = db.query(User).filter(User.google_id == google_id).first()
+    if not user and email:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            # Link existing account to Google
+            user.google_id = google_id
+
+    if not user:
+        # New user — create account + student record
+        user = User(
+            email=email,
+            password_hash=None,
+            google_id=google_id,
+            role=UserRole.STUDENT,
+        )
+        db.add(user)
+        db.flush()
+        student = Student(user_id=user.id, status=StudentStatus.PENDING)
+        db.add(student)
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+
+    db.commit()
     token = create_access_token({"user_id": user.id, "role": user.role.value})
     return TokenResponse(access_token=token, role=user.role.value)
 

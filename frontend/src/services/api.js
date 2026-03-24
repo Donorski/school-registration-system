@@ -40,6 +40,7 @@ api.interceptors.response.use(
 // --- Auth ---
 export const login = (data) => api.post('/auth/login', data);
 export const registerStudent = (data) => api.post('/auth/register', data);
+export const googleAuth = (credential) => api.post('/auth/google', { credential });
 export const getMe = () => api.get('/auth/me');
 
 // --- Student ---

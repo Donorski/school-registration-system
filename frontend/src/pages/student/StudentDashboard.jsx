@@ -262,6 +262,7 @@ function NextStepsGuide({ profile, subjects, calendar }) {
     amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-500',   title: 'text-amber-800',   desc: 'text-amber-700',   btn: 'bg-amber-600 hover:bg-amber-700' },
     red:     { bg: 'bg-red-50',     border: 'border-red-200',     icon: 'text-red-500',     title: 'text-red-800',     desc: 'text-red-700',     btn: 'bg-red-600 hover:bg-red-700' },
     green:   { bg: 'bg-green-50',   border: 'border-green-200',   icon: 'text-green-500',   title: 'text-green-800',   desc: 'text-green-700',   btn: 'bg-green-600 hover:bg-green-700' },
+    blue:    { bg: 'bg-blue-50',    border: 'border-blue-200',    icon: 'text-blue-500',    title: 'text-blue-800',    desc: 'text-blue-700',    btn: 'bg-blue-600 hover:bg-blue-700' },
   };
   const c = colorMap[step.color];
 

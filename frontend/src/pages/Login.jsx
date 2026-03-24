@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
-import { login } from '../services/api';
+import { login, googleAuth } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { getErrorMessage } from '../utils/helpers';
 
@@ -19,6 +20,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   // Redirect when user state updates after login
@@ -27,6 +29,20 @@ export default function Login() {
       navigate(ROLE_REDIRECTS[user.role] || '/login', { replace: true });
     }
   }, [user, navigate]);
+
+  const handleGoogleSuccess = async (response) => {
+    setGoogleLoading(true);
+    setLoginError('');
+    try {
+      const res = await googleAuth(response.credential);
+      const { access_token, role } = res.data;
+      loginUser(access_token, { role });
+      toast.success('Signed in with Google');
+    } catch (err) {
+      setLoginError(getErrorMessage(err));
+      setGoogleLoading(false);
+    }
+  };
 
   const onSubmit = async (data) => {
     setSubmitting(true);
@@ -117,6 +133,32 @@ export default function Login() {
               {submitting ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs text-gray-400 uppercase">
+              <span className="bg-white px-3">or</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            {googleLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 size={16} className="animate-spin" /> Signing in...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setLoginError('Google sign-in failed. Please try again.')}
+                width="368"
+                text="signin_with"
+                shape="rectangular"
+                theme="outline"
+              />
+            )}
+          </div>
 
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">

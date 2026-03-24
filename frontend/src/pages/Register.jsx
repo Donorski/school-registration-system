@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, AlertCircle, Check, X, CalendarX } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
-import { registerStudent, getEnrollmentStatus } from '../services/api';
+import { registerStudent, getEnrollmentStatus, googleAuth } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { getErrorMessage } from '../utils/helpers';
 
@@ -43,6 +44,7 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
@@ -63,6 +65,20 @@ export default function Register() {
       .catch(() => setEnrollmentStatus({ is_open: true })) // fail open so network errors don't block registration
       .finally(() => setStatusLoading(false));
   }, []);
+
+  const handleGoogleSuccess = async (response) => {
+    setGoogleLoading(true);
+    setRegisterError('');
+    try {
+      const res = await googleAuth(response.credential);
+      const { access_token, role } = res.data;
+      loginUser(access_token, { role });
+      toast.success('Account created with Google! Please fill out your application form.');
+    } catch (err) {
+      setRegisterError(getErrorMessage(err));
+      setGoogleLoading(false);
+    }
+  };
 
   const onSubmit = async (data) => {
     setSubmitting(true);
@@ -242,6 +258,33 @@ export default function Register() {
               <p className="text-center text-xs text-amber-600 mt-2">Registration is disabled while enrollment is closed.</p>
             )}
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs text-gray-400 uppercase">
+              <span className="bg-white px-3">or sign up with</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            {googleLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 size={16} className="animate-spin" /> Signing in with Google...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setRegisterError('Google sign-in failed. Please try again.')}
+                width="368"
+                text="signup_with"
+                shape="rectangular"
+                theme="outline"
+                disabled={enrollmentStatus && !enrollmentStatus.is_open}
+              />
+            )}
+          </div>
 
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
