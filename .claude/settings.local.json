@@ -55,7 +55,8 @@
       "Bash(alembic current:*)",
       "Bash(cd /c/Users/\"jonel angelo donor\"/OneDrive/Desktop/school-registration-system/backend && ./venv/Scripts/alembic upgrade head 2>&1)",
       "Bash(cd /c/Users/\"jonel angelo donor\"/OneDrive/Desktop/school-registration-system/backend && ./venv/Scripts/alembic current 2>&1)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(claude doctor:*)"
     ]
   }
 }

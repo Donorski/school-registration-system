@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye, Megaphone, Pin, Trash2, Plus } from 'lucide-react';
+import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
@@ -9,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonLoader';
-import { getDashboardStats, generateEnrollmentReport, getAnnouncements, createAnnouncement, deleteAnnouncement } from '../../services/api';
+import { getDashboardStats, generateEnrollmentReport } from '../../services/api';
 
 /** Animates a number from 0 to `target` over `duration` ms using ease-out cubic. */
 function useCountUp(target, duration = 900) {
@@ -39,19 +38,21 @@ function toChartData(obj) {
   return Object.entries(obj || {}).map(([name, value]) => ({ name, value }));
 }
 
-function StatCard({ label, value, icon: Icon, iconClass, delay }) {
+function StatCard({ label, value, icon: Icon, iconClass, delay, to }) {
   const count = useCountUp(value);
   return (
-    <div
-      className="bg-white rounded-xl border border-gray-100 p-5 animate-slide-up"
+    <Link
+      to={to}
+      className="bg-white rounded-xl border border-gray-100 p-5 animate-slide-up hover:shadow-md hover:border-emerald-300 transition group block cursor-pointer"
       style={{ animationDelay: delay }}
     >
-      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-sm text-gray-500 group-hover:text-emerald-600 transition">{label}</p>
       <div className="flex items-center gap-3 mt-2">
-        <Icon size={20} className={iconClass} />
+        <Icon size={20} className={`${iconClass} group-hover:scale-110 transition-transform`} />
         <p className="text-3xl font-bold text-gray-800">{count}</p>
       </div>
-    </div>
+      <p className="text-xs text-gray-400 mt-3 group-hover:text-emerald-500 transition">Click to view →</p>
+    </Link>
   );
 }
 
@@ -59,15 +60,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [alertDismissed, setAlertDismissed] = useState(false);
-
-  // Announcements state
-  const [announcements, setAnnouncements] = useState([]);
-  const [annModalOpen, setAnnModalOpen] = useState(false);
-  const [annTitle, setAnnTitle] = useState('');
-  const [annMessage, setAnnMessage] = useState('');
-  const [annPinned, setAnnPinned] = useState(false);
-  const [annExpiry, setAnnExpiry] = useState('');
-  const [annSaving, setAnnSaving] = useState(false);
 
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -81,42 +73,7 @@ export default function AdminDashboard() {
     getDashboardStats()
       .then((res) => setStats(res.data))
       .finally(() => setLoading(false));
-    getAnnouncements().then((res) => setAnnouncements(res.data)).catch(() => {});
   }, []);
-
-  const handlePostAnnouncement = async () => {
-    if (!annTitle.trim() || !annMessage.trim()) {
-      toast.error('Title and message are required');
-      return;
-    }
-    setAnnSaving(true);
-    try {
-      const res = await createAnnouncement({
-        title: annTitle.trim(),
-        message: annMessage.trim(),
-        is_pinned: annPinned,
-        expires_at: annExpiry || null,
-      });
-      setAnnouncements((prev) => [res.data, ...prev].sort((a, b) => b.is_pinned - a.is_pinned));
-      setAnnTitle(''); setAnnMessage(''); setAnnPinned(false); setAnnExpiry('');
-      setAnnModalOpen(false);
-      toast.success('Announcement posted');
-    } catch {
-      toast.error('Failed to post announcement');
-    } finally {
-      setAnnSaving(false);
-    }
-  };
-
-  const handleDeleteAnnouncement = async (id) => {
-    try {
-      await deleteAnnouncement(id);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-      toast.success('Announcement deleted');
-    } catch {
-      toast.error('Failed to delete announcement');
-    }
-  };
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload?.length) {
@@ -199,11 +156,6 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-        <p className="text-gray-500">Overview of student registrations</p>
-      </div>
-
       {/* Pending alert banner */}
       {!loading && pendingCount > 0 && !alertDismissed && (
         <div className="mb-6 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl animate-slide-up">
@@ -226,6 +178,135 @@ export default function AdminDashboard() {
             <X size={16} />
           </button>
         </div>
+      )}
+
+      {/* Charts */}
+      {!loading && (
+        <>
+          {/* Row 1: Both Pie Charts side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Application Status</h2>
+              {(() => {
+                const statusData = [
+                  { name: 'Pending', value: stats?.pending_students || 0 },
+                  { name: 'Approved', value: stats?.approved_students || 0 },
+                  { name: 'Denied', value: stats?.denied_students || 0 },
+                ].filter((d) => d.value > 0);
+                return statusData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        innerRadius={50}
+                        dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
+                        isAnimationActive
+                        animationBegin={300}
+                        animationDuration={900}
+                        animationEasing="ease-out"
+                      >
+                        {statusData.map((_, i) => (
+                          <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Enrollment Type</h2>
+              {(() => {
+                const enrollmentTypeData = toChartData(stats?.by_enrollment_type);
+                return enrollmentTypeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={enrollmentTypeData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        innerRadius={50}
+                        dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
+                        isAnimationActive
+                        animationBegin={300}
+                        animationDuration={900}
+                        animationEasing="ease-out"
+                      >
+                        {enrollmentTypeData.map((_, i) => (
+                          <Cell key={i} fill={ENROLLMENT_COLORS[i % ENROLLMENT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Row 2: Both Bar Charts side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Students by Strand</h2>
+              {(() => {
+                const strandData = toChartData(stats?.by_strand);
+                return strandData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={strandData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out">
+                        {strandData.map((_, i) => (
+                          <Cell key={i} fill={STRAND_COLORS[i % STRAND_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">By Grade Level</h2>
+              {(() => {
+                const gradeData = toChartData(stats?.by_grade_level);
+                return gradeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={gradeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
+                );
+              })()}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Quick Actions */}
@@ -285,297 +366,13 @@ export default function AdminDashboard() {
           </>
         ) : (
           <>
-            <StatCard label="Total Students" value={stats?.total_students ?? 0}   icon={Users}         iconClass="text-emerald-600" delay="0ms"   />
-            <StatCard label="Pending"        value={stats?.pending_students ?? 0}  icon={ClipboardList} iconClass="text-yellow-500"  delay="80ms"  />
-            <StatCard label="Approved"       value={stats?.approved_students ?? 0} icon={CheckCircle}   iconClass="text-green-500"   delay="160ms" />
-            <StatCard label="Denied"         value={stats?.denied_students ?? 0}   icon={XCircle}       iconClass="text-red-500"     delay="240ms" />
+            <StatCard label="Total Students" value={stats?.total_students ?? 0}   icon={Users}         iconClass="text-emerald-600" delay="0ms"   to="/admin/students" />
+            <StatCard label="Pending"        value={stats?.pending_students ?? 0}  icon={ClipboardList} iconClass="text-yellow-500"  delay="80ms"  to="/admin/pending" />
+            <StatCard label="Approved"       value={stats?.approved_students ?? 0} icon={CheckCircle}   iconClass="text-green-500"   delay="160ms" to="/admin/students?status=approved" />
+            <StatCard label="Denied"         value={stats?.denied_students ?? 0}   icon={XCircle}       iconClass="text-red-500"     delay="240ms" to="/admin/students?status=denied" />
           </>
         )}
       </div>
-
-      {/* Announcement Board */}
-      <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-emerald-100 p-2 rounded-lg">
-              <Megaphone size={18} className="text-emerald-700" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-emerald-900">Announcements</h2>
-              {announcements.length > 0 && (
-                <p className="text-xs text-emerald-600">{announcements.length} active announcement{announcements.length !== 1 ? 's' : ''}</p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={() => setAnnModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition"
-          >
-            <Plus size={15} />
-            New Announcement
-          </button>
-        </div>
-
-        {announcements.length === 0 ? (
-          <div className="text-center py-10 bg-white/60 rounded-xl border border-emerald-100">
-            <Megaphone size={36} className="mx-auto mb-2 text-emerald-300" />
-            <p className="text-sm font-medium text-emerald-700">No announcements yet</p>
-            <p className="text-xs text-emerald-500 mt-1">Post one and students will see it on their dashboard.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {announcements.map((ann) => (
-              <div key={ann.id} className={`flex items-start justify-between gap-3 p-4 rounded-xl border shadow-sm ${ann.is_pinned ? 'bg-amber-50 border-amber-300' : 'bg-white border-emerald-100'}`}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {ann.is_pinned && (
-                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        <Pin size={10} /> Pinned
-                      </span>
-                    )}
-                    <h3 className="font-semibold text-gray-800 text-sm truncate">{ann.title}</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-line">{ann.message}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                    <span>{new Date(ann.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                    {ann.expires_at && (
-                      <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full font-medium">
-                        Expires {new Date(ann.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteAnnouncement(ann.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                  title="Delete"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {!loading && (
-        <>
-          {/* Row 1: Status Pie + Strand Bar */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Application Status</h2>
-              {(() => {
-                const statusData = [
-                  { name: 'Pending', value: stats?.pending_students || 0 },
-                  { name: 'Approved', value: stats?.approved_students || 0 },
-                  { name: 'Denied', value: stats?.denied_students || 0 },
-                ].filter((d) => d.value > 0);
-                return statusData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        innerRadius={50}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                        isAnimationActive
-                        animationBegin={300}
-                        animationDuration={900}
-                        animationEasing="ease-out"
-                      >
-                        {statusData.map((_, i) => (
-                          <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-                );
-              })()}
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Students by Strand</h2>
-              {(() => {
-                const strandData = toChartData(stats?.by_strand);
-                return strandData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={strandData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out">
-                        {strandData.map((_, i) => (
-                          <Cell key={i} fill={STRAND_COLORS[i % STRAND_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Row 2: Grade Level + Enrollment Type */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">By Grade Level</h2>
-              {(() => {
-                const gradeData = toChartData(stats?.by_grade_level);
-                return gradeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={gradeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-                );
-              })()}
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Enrollment Type</h2>
-              {(() => {
-                const enrollmentTypeData = toChartData(stats?.by_enrollment_type);
-                return enrollmentTypeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <PieChart>
-                      <Pie
-                        data={enrollmentTypeData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={40}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                        isAnimationActive
-                        animationBegin={300}
-                        animationDuration={900}
-                        animationEasing="ease-out"
-                      >
-                        {enrollmentTypeData.map((_, i) => (
-                          <Cell key={i} fill={ENROLLMENT_COLORS[i % ENROLLMENT_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
-                );
-              })()}
-            </div>
-          </div>
-        </>
-      )}
-      {/* New Announcement Modal — rendered via portal to escape CSS transform stacking context */}
-      {annModalOpen && createPortal(
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
-          <div className="flex min-h-full items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Megaphone size={20} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">New Announcement</h2>
-                  <p className="text-xs text-emerald-100">Visible to all students on their dashboard</p>
-                </div>
-              </div>
-              <button onClick={() => setAnnModalOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg transition text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={annTitle}
-                  onChange={(e) => setAnnTitle(e.target.value)}
-                  placeholder="e.g. Enrollment is now open"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Message</label>
-                <textarea
-                  value={annMessage}
-                  onChange={(e) => setAnnMessage(e.target.value)}
-                  rows={4}
-                  placeholder="Write your announcement here..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50 resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Expiry Date <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="date"
-                  value={annExpiry}
-                  onChange={(e) => setAnnExpiry(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50"
-                />
-                <p className="text-xs text-gray-400 mt-1">Announcement auto-hides after this date.</p>
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={annPinned}
-                  onChange={(e) => setAnnPinned(e.target.checked)}
-                  className="w-4 h-4 accent-amber-500"
-                />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">Pin this announcement</p>
-                  <p className="text-xs text-amber-600">Pinned announcements always appear at the top</p>
-                </div>
-              </label>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
-              <button
-                onClick={() => setAnnModalOpen(false)}
-                disabled={annSaving}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePostAnnouncement}
-                disabled={annSaving}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition disabled:opacity-60"
-              >
-                <Megaphone size={15} />
-                {annSaving ? 'Posting...' : 'Post Announcement'}
-              </button>
-            </div>
-          </div>
-          </div>
-        </div>
-      , document.body)}
 
       {/* PDF Preview Modal */}
       {previewUrl && (

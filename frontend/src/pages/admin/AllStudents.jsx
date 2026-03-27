@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -9,10 +9,11 @@ import { getAdminStudents, deleteStudent } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
 export default function AllStudents() {
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -98,7 +99,7 @@ export default function AllStudents() {
           <div className="text-center py-12 text-gray-400">No students found</div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div key={page} className="overflow-x-auto animate-table-enter">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>

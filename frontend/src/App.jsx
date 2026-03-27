@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import PrivateRoute from './components/PrivateRoute';
 import LoadingSpinner from './components/LoadingSpinner';
+import PageTransition from './components/PageTransition';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -13,6 +14,7 @@ import AllStudents from './pages/admin/AllStudents';
 import StudentDetails from './pages/admin/StudentDetails';
 import Settings from './pages/admin/Settings';
 import AuditLogs from './pages/admin/AuditLogs';
+import Announcements from './pages/admin/Announcements';
 import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
 import Subjects from './pages/registrar/Subjects';
 import AssignSubjects from './pages/registrar/AssignSubjects';
@@ -31,6 +33,7 @@ export default function App() {
   };
 
   return (
+    <PageTransition>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -46,6 +49,7 @@ export default function App() {
       <Route path="/admin/students" element={<PrivateRoute roles={['admin']}><AllStudents /></PrivateRoute>} />
       <Route path="/admin/students/:id" element={<PrivateRoute roles={['admin']}><StudentDetails /></PrivateRoute>} />
       <Route path="/admin/audit-logs" element={<PrivateRoute roles={['admin']}><AuditLogs /></PrivateRoute>} />
+      <Route path="/admin/announcements" element={<PrivateRoute roles={['admin']}><Announcements /></PrivateRoute>} />
       <Route path="/admin/settings" element={<PrivateRoute roles={['admin']}><Settings /></PrivateRoute>} />
 
       {/* Registrar */}
@@ -60,5 +64,6 @@ export default function App() {
       {/* Catch all */}
       <Route path="*" element={<Navigate to={getHomeRedirect()} replace />} />
     </Routes>
+    </PageTransition>
   );
 }

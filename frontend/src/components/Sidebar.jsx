@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, BookOpen, UserPlus, CreditCard,
-  Settings, X, ScrollText, Bell,
+  Settings, X, ScrollText, Bell, Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getPendingStudents, getPendingPayments } from '../services/api';
@@ -20,6 +20,7 @@ const links = {
     { to: '/admin/pending', label: 'Pending', icon: ClipboardList, badge: true },
     { to: '/admin/students', label: 'All Students', icon: Users },
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText },
+    { to: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { to: '/notifications', label: 'Notifications', icon: Bell, notifBadge: true },
     { to: '/admin/settings', label: 'Settings', icon: Settings },
   ],

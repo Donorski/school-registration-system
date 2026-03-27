@@ -363,7 +363,7 @@ export default function StudentProfile() {
 
   if (loading) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
 
-  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none ${isLocked ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`;
+  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none uppercase ${isLocked ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`;
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
   return (

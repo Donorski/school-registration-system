@@ -24,23 +24,25 @@ function useCountUp(target, duration = 900) {
   return count;
 }
 
-function StatCard({ label, value, icon: Icon, color, delay }) {
+function StatCard({ label, value, icon: Icon, color, delay, to }) {
   const count = useCountUp(value);
   return (
-    <div
-      className="bg-white rounded-xl shadow-sm border p-5 animate-slide-up"
+    <Link
+      to={to}
+      className="bg-white rounded-xl shadow-sm border p-5 animate-slide-up hover:shadow-md hover:border-emerald-300 transition cursor-pointer group block"
       style={{ animationDelay: delay }}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">{label}</p>
+          <p className="text-sm text-gray-500 group-hover:text-emerald-600 transition">{label}</p>
           <p className="text-3xl font-bold text-gray-800 mt-1">{count}</p>
         </div>
-        <div className={`${color} p-3 rounded-xl`}>
+        <div className={`${color} p-3 rounded-xl group-hover:scale-110 transition-transform`}>
           <Icon size={24} className="text-white" />
         </div>
       </div>
-    </div>
+      <p className="text-xs text-gray-400 mt-3 group-hover:text-emerald-500 transition">Click to view →</p>
+    </Link>
   );
 }
 
@@ -80,9 +82,9 @@ export default function RegistrarDashboard() {
   }, []);
 
   const cards = [
-    { label: 'Total Subjects', value: subjectCount, icon: BookOpen, color: 'bg-emerald-600' },
-    { label: 'Approved Students', value: studentCount, icon: Users, color: 'bg-green-500' },
-    { label: 'Pending Payments', value: pendingPaymentCount, icon: CreditCard, color: 'bg-amber-500' },
+    { label: 'Total Subjects', value: subjectCount, icon: BookOpen, color: 'bg-emerald-600', to: '/registrar/subjects' },
+    { label: 'Approved Students', value: studentCount, icon: Users, color: 'bg-green-500', to: '/registrar/assign' },
+    { label: 'Pending Payments', value: pendingPaymentCount, icon: CreditCard, color: 'bg-amber-500', to: '/registrar/payments' },
   ];
 
   return (
@@ -125,8 +127,8 @@ export default function RegistrarDashboard() {
             <SkeletonCard />
           </>
         ) : (
-          cards.map(({ label, value, icon, color }, i) => (
-            <StatCard key={label} label={label} value={value} icon={icon} color={color} delay={`${i * 80}ms`} />
+          cards.map(({ label, value, icon, color, to }, i) => (
+            <StatCard key={label} label={label} value={value} icon={icon} color={color} to={to} delay={`${i * 80}ms`} />
           ))
         )}
       </div>

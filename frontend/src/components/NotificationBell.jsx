@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { NotificationContext } from '../context/NotificationContext';
+import { useAuth } from '../hooks/useAuth';
+
+const NOTIF_LINKS = {
+  application_approved: { student: '/student/dashboard' },
+  application_denied:   { student: '/student/profile' },
+  payment_verified:     { student: '/student/dashboard' },
+  payment_rejected:     { student: '/student/dashboard' },
+  subjects_assigned:    { student: '/student/dashboard' },
+  new_form_submitted:   { admin: '/admin/pending' },
+  student_approved:     { registrar: '/registrar/payments' },
+  new_receipt_uploaded: { registrar: '/registrar/payments' },
+};
 
 const TYPE_STYLES = {
   application_approved: 'bg-green-100 text-green-600',
@@ -31,6 +44,8 @@ function timeAgo(dateStr) {
 export default function NotificationBell() {
   const { notifications, unreadCount, loading, fetchNotifications, markAsRead, markAllAsRead } =
     useContext(NotificationContext);
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -100,11 +115,16 @@ export default function NotificationBell() {
               notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${
+                  className={`group flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${
                     !notif.is_read ? 'bg-emerald-50/50' : ''
                   }`}
-                  onClick={() => {
-                    if (!notif.is_read) markAsRead(notif.id);
+                  onClick={async () => {
+                    if (!notif.is_read) await markAsRead(notif.id);
+                    const dest = NOTIF_LINKS[notif.type]?.[user?.role];
+                    if (dest) {
+                      setOpen(false);
+                      navigate(dest);
+                    }
                   }}
                 >
                   {/* Type dot */}
@@ -125,12 +145,13 @@ export default function NotificationBell() {
                     <p className="text-[10px] text-gray-400 mt-1">{timeAgo(notif.created_at)}</p>
                   </div>
 
-                  {/* Unread indicator */}
-                  {!notif.is_read && (
-                    <div className="mt-2 flex-shrink-0">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                    </div>
-                  )}
+                  {/* Unread dot + link arrow */}
+                  <div className="mt-2 flex-shrink-0 flex flex-col items-center gap-1">
+                    {!notif.is_read && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                    {NOTIF_LINKS[notif.type]?.[user?.role] && (
+                      <span className="text-[10px] text-gray-300 group-hover:text-gray-400">›</span>
+                    )}
+                  </div>
                 </div>
               ))
             )}

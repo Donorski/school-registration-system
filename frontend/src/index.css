@@ -65,3 +65,21 @@
   animation: slideFromLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: pageEnter 0.22s ease-out both;
+}
+
+@keyframes tableEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-table-enter {
+  animation: tableEnter 0.18s ease-out both;
+}
+
