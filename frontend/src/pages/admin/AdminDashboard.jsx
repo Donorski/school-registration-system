@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye } from 'lucide-react';
 import {
@@ -9,26 +10,7 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonLoader';
 import { getDashboardStats, generateEnrollmentReport } from '../../services/api';
-
-/** Animates a number from 0 to `target` over `duration` ms using ease-out cubic. */
-function useCountUp(target, duration = 900) {
-  const [count, setCount] = useState(0);
-  const rafRef = useRef(null);
-  useEffect(() => {
-    if (!target) { setCount(0); return; }
-    let startTime = null;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(eased * target));
-      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, duration]);
-  return count;
-}
+import { useCountUp } from '../../hooks/useCountUp';
 
 const STATUS_COLORS = ['#f59e0b', '#22c55e', '#ef4444'];
 const STRAND_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
@@ -36,6 +18,18 @@ const ENROLLMENT_COLORS = ['#10b981', '#f59e0b', '#8b5cf6'];
 
 function toChartData(obj) {
   return Object.entries(obj || {}).map(([name, value]) => ({ name, value }));
+}
+
+function CustomTooltip({ active, payload }) {
+  if (active && payload?.length) {
+    return (
+      <div className="bg-white border border-gray-200 shadow-lg rounded-lg px-3 py-2 text-sm">
+        <p className="font-medium text-gray-800">{payload[0].name}</p>
+        <p className="text-gray-600">{payload[0].value} student{payload[0].value !== 1 ? 's' : ''}</p>
+      </div>
+    );
+  }
+  return null;
 }
 
 function StatCard({ label, value, icon: Icon, iconClass, delay, to }) {
@@ -75,17 +69,9 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload?.length) {
-      return (
-        <div className="bg-white border border-gray-200 shadow-lg rounded-lg px-3 py-2 text-sm">
-          <p className="font-medium text-gray-800">{payload[0].name}</p>
-          <p className="text-gray-600">{payload[0].value} student{payload[0].value !== 1 ? 's' : ''}</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  useEffect(() => {
+    return () => { if (previewUrl) window.URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
 
   const renderPieLabel = ({ name, percent }) =>
     percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : '';
@@ -149,10 +135,10 @@ export default function AdminDashboard() {
     link.remove();
   };
 
-  const closePreview = useCallback(() => {
+  const closePreview = () => {
     if (previewUrl) window.URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-  }, [previewUrl]);
+  };
 
   return (
     <DashboardLayout>

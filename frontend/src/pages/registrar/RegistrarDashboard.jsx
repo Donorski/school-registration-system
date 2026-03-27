@@ -1,28 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Users, UserPlus, CreditCard, AlertTriangle, X, CheckCircle } from 'lucide-react';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonLoader';
 import { getSubjects, getApprovedStudents, getPendingPayments } from '../../services/api';
-
-function useCountUp(target, duration = 900) {
-  const [count, setCount] = useState(0);
-  const rafRef = useRef(null);
-  useEffect(() => {
-    if (!target) { setCount(0); return; }
-    let startTime = null;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(eased * target));
-      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, duration]);
-  return count;
-}
+import { useCountUp } from '../../hooks/useCountUp';
 
 function StatCard({ label, value, icon: Icon, color, delay, to }) {
   const count = useCountUp(value);
