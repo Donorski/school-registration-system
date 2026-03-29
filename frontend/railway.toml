@@ -1,6 +1,7 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "frontend/Dockerfile"
+builder = "NIXPACKS"
+buildCommand = "npm run build"
 
 [deploy]
+startCommand = "npx serve -s dist -l $PORT"
 restartPolicyType = "ON_FAILURE"
