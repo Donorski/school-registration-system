@@ -1,12 +1,9 @@
 """Registrar endpoints — subject CRUD, enrollment management, payment verification."""
 
-import io
 import os
-import zipfile
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -324,59 +321,6 @@ def get_student_enrollment_history(
     return student.enrollment_records
 
 
-@router.get("/students/{student_id}/download-files")
-def download_student_files(
-    student_id: int,
-    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
-    db: Session = Depends(get_db),
-):
-    """Bundle all uploaded files for a student into a ZIP and stream it back."""
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-
-    # Named single-file fields
-    file_fields = {
-        "ID_Photo": student.student_photo_path,
-        "Grades": student.grades_path,
-        "Voucher": student.voucher_path,
-        "PSA_Birth_Certificate": student.psa_birth_cert_path,
-        "Transfer_Credential": student.transfer_credential_path,
-        "Good_Moral_Certificate": student.good_moral_path,
-        "Payment_Receipt": student.payment_receipt_path,
-    }
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for label, rel_path in file_fields.items():
-            if not rel_path:
-                continue
-            full_path = os.path.join(settings.UPLOAD_DIR, rel_path)
-            if os.path.isfile(full_path):
-                ext = os.path.splitext(rel_path)[1]
-                zf.write(full_path, f"{label}{ext}")
-
-        # Additional documents (stored as a JSON list of paths)
-        if student.documents_path:
-            for i, rel_path in enumerate(student.documents_path, start=1):
-                full_path = os.path.join(settings.UPLOAD_DIR, rel_path)
-                if os.path.isfile(full_path):
-                    ext = os.path.splitext(rel_path)[1]
-                    zf.write(full_path, f"Document_{i}{ext}")
-
-    zip_buffer.seek(0)
-
-    student_name = (
-        f"{student.first_name or ''}_{student.last_name or ''}".strip("_")
-        or f"Student_{student_id}"
-    )
-    filename = f"{student_name}_files.zip"
-
-    return StreamingResponse(
-        zip_buffer,
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
 
 
 # --- Subject CRUD ---

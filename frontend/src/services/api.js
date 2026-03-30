@@ -105,8 +105,6 @@ export const getApprovedStudents = (params) => api.get('/registrar/students/appr
 export const getClassList = (params) => api.get('/registrar/class-list', { params });
 export const getStudentCompleteInfo = (id) => api.get(`/registrar/students/${id}/complete-info`);
 export const getRegistrarStudentEnrollmentHistory = (id) => api.get(`/registrar/students/${id}/enrollment-history`);
-export const downloadStudentFiles = (id) =>
-  api.get(`/registrar/students/${id}/download-files`, { responseType: 'blob' });
 export const getSubjects = (params) => api.get('/registrar/subjects', { params });
 export const createSubject = (data) => api.post('/registrar/subjects', data);
 export const updateSubject = (id, data) => api.put(`/registrar/subjects/${id}`, data);

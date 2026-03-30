@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Search, User, CheckCircle, XCircle, Loader2, FileText, Download } from 'lucide-react';
+import { Search, User, CheckCircle, XCircle, Loader2, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment, downloadStudentFiles } from '../../services/api';
+import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment } from '../../services/api';
 import { getErrorMessage } from '../../utils/helpers';
 
 export default function PaymentReview() {
@@ -17,7 +17,6 @@ export default function PaymentReview() {
   const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-  const [downloading, setDownloading] = useState(false);
 
   const fetchStudents = async () => {
     try {
@@ -86,26 +85,6 @@ export default function PaymentReview() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!studentDetail) return;
-    setDownloading(true);
-    try {
-      const res = await downloadStudentFiles(studentDetail.id);
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/zip' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${studentDetail.first_name || ''}_${studentDetail.last_name || ''}_files.zip`.replace(/^_|_$/g, '');
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success('Files downloaded successfully');
-    } catch {
-      toast.error('Failed to download files');
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const isPdf = (path) => path?.toLowerCase().endsWith('.pdf');
 
@@ -226,17 +205,6 @@ export default function PaymentReview() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-700">Student Documents</h3>
-                  <button
-                    onClick={handleDownload}
-                    disabled={downloading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition"
-                    title="Download all files as ZIP"
-                  >
-                    {downloading
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <Download size={13} />}
-                    {downloading ? 'Downloading…' : 'Download All Files'}
-                  </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* ID Photo */}
