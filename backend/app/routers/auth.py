@@ -86,8 +86,8 @@ def google_auth(data: GoogleAuthRequest, db: Session = Depends(get_db)):
             google_requests.Request(),
             settings.GOOGLE_CLIENT_ID,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
 
     google_id = id_info["sub"]
     email = id_info.get("email", "")
