@@ -24,6 +24,7 @@ class Settings:
         "CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:5174"
     ).split(",")
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    TURNSTILE_SECRET_KEY: str = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
 
 
 settings = Settings()

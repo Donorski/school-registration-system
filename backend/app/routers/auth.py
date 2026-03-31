@@ -7,6 +7,7 @@ from slowapi.util import get_remote_address
 from pydantic import BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+import requests as http_requests
 
 from app.database import get_db
 from app.auth.jwt_handler import hash_password, verify_password, create_access_token
@@ -16,6 +17,21 @@ from app.models.student import Student, StudentStatus
 from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse
 from app.config import settings
 
+
+def verify_turnstile(token: str) -> bool:
+    """Verify a Cloudflare Turnstile token. Returns True if valid."""
+    if not settings.TURNSTILE_SECRET_KEY:
+        return True  # Skip verification if not configured
+    try:
+        resp = http_requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": settings.TURNSTILE_SECRET_KEY, "response": token},
+            timeout=5,
+        )
+        return resp.json().get("success", False)
+    except Exception:
+        return False
+
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 limiter = Limiter(key_func=get_remote_address)
 
@@ -24,6 +40,8 @@ limiter = Limiter(key_func=get_remote_address)
 @limiter.limit("5/minute")
 def register(request: Request, data: UserRegister, db: Session = Depends(get_db)):
     """Register a new student account. Creates user + pending student record."""
+    if not verify_turnstile(data.captcha_token):
+        raise HTTPException(status_code=400, detail="Captcha verification failed. Please try again.")
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(

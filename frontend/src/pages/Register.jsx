@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, AlertCircle, Check, X, CalendarX } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+import { Turnstile } from '@marsidev/react-turnstile';
 import toast from 'react-hot-toast';
 import { registerStudent, getEnrollmentStatus, googleAuth } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -47,6 +48,8 @@ export default function Register() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const turnstileRef = useRef(null);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
   const password = watch('password', '');
@@ -81,10 +84,14 @@ export default function Register() {
   };
 
   const onSubmit = async (data) => {
+    if (!captchaToken) {
+      setRegisterError('Please complete the captcha.');
+      return;
+    }
     setSubmitting(true);
     setRegisterError('');
     try {
-      const res = await registerStudent({ email: data.email, password: data.password });
+      const res = await registerStudent({ email: data.email, password: data.password, captcha_token: captchaToken });
       const { access_token, role } = res.data;
       loginUser(access_token, { email: data.email, role });
       toast.success('Account created! Please fill out your application form.');
@@ -92,6 +99,8 @@ export default function Register() {
       const msg = getErrorMessage(err);
       setRegisterError(msg);
       setSubmitting(false);
+      setCaptchaToken('');
+      turnstileRef.current?.reset();
     }
   };
 
@@ -246,9 +255,18 @@ export default function Register() {
               {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
 
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ''}
+              onSuccess={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken('')}
+              onError={() => setCaptchaToken('')}
+              options={{ theme: 'light' }}
+            />
+
             <button
               type="submit"
-              disabled={submitting || (enrollmentStatus && !enrollmentStatus.is_open)}
+              disabled={submitting || !captchaToken || (enrollmentStatus && !enrollmentStatus.is_open)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 size={18} className="animate-spin" /> : null}

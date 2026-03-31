@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
+    captcha_token: str = ""
 
     @field_validator("password")
     @classmethod
