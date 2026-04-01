@@ -13,7 +13,11 @@ import ConfirmModal from '../../components/ConfirmModal';
 import {
   getMyProfile, updateMyProfile, uploadPhoto, uploadGrades, uploadVoucher,
   uploadPsaBirthCert, uploadTransferCredential, uploadGoodMoral, lookupStudent,
+  getEnrollmentStatus,
 } from '../../services/api';
+
+const SCHOOL_NAME = 'DATABASE TECHNOLOGY COLLEGE';
+const SCHOOL_ADDRESS = 'GUBAT SORSOGON CITY';
 import { getErrorMessage } from '../../utils/helpers';
 
 const STEPS = [
@@ -99,28 +103,48 @@ export default function StudentProfile() {
   useEffect(() => {
     if (watchedEnrollmentType !== undefined) {
       setEnrollmentType(watchedEnrollmentType || '');
+
+      // Auto-fill grade level fields for new enrollees
+      if (watchedEnrollmentType === 'NEW_ENROLLEE') {
+        setValue('grade_level_to_enroll', 'Grade 11');
+        setValue('last_grade_level_completed', 'Grade 10');
+      }
     }
   }, [watchedEnrollmentType]);
 
   useEffect(() => {
-    getMyProfile()
-      .then((res) => {
-        reset(res.data);
-        setStatus(res.data.status);
-        setDenialReason(res.data.denial_reason || null);
-        setPhotoPath(res.data.student_photo_path);
-        setGradesPath(res.data.grades_path);
-        setVoucherPath(res.data.voucher_path);
-        setPsaBirthCertPath(res.data.psa_birth_cert_path);
-        setTransferCredentialPath(res.data.transfer_credential_path);
-        setGoodMoralPath(res.data.good_moral_path);
-        setEnrollmentType(res.data.enrollment_type || '');
-        setTransfereeSubjects(res.data.transferee_subjects || []);
-        setHasSubmitted(!!res.data.first_name && !!res.data.last_name);
+    Promise.all([getMyProfile(), getEnrollmentStatus()])
+      .then(([profileRes, calendarRes]) => {
+        const data = profileRes.data;
+        const cal = calendarRes.data;
+        const submitted = !!data.first_name && !!data.last_name;
+
+        reset(data);
+        setStatus(data.status);
+        setDenialReason(data.denial_reason || null);
+        setPhotoPath(data.student_photo_path);
+        setGradesPath(data.grades_path);
+        setVoucherPath(data.voucher_path);
+        setPsaBirthCertPath(data.psa_birth_cert_path);
+        setTransferCredentialPath(data.transfer_credential_path);
+        setGoodMoralPath(data.good_moral_path);
+        setEnrollmentType(data.enrollment_type || '');
+        setTransfereeSubjects(data.transferee_subjects || []);
+        setHasSubmitted(submitted);
+
+        const locked = (data.status === 'pending' || data.status === 'approved') && submitted;
+
+        // Auto-fill fixed fields (always, unless locked)
+        if (!locked) {
+          if (cal.school_year) setValue('school_year', cal.school_year);
+          if (cal.semester) setValue('semester', cal.semester.replace(' Semester', '').trim() === '1st' ? '1st Semester' : cal.semester.includes('2') ? '2nd Semester' : cal.semester);
+          setValue('school_to_enroll_in', SCHOOL_NAME);
+          setValue('school_address', SCHOOL_ADDRESS);
+        }
 
         // Initialize address cascade from saved data
-        if (res.data.region) {
-          const saved = res.data.region.toLowerCase().trim();
+        if (data.region) {
+          const saved = data.region.toLowerCase().trim();
           const found = phRegions.find(r =>
             r.name.toLowerCase() === saved ||
             r.long.toLowerCase() === saved ||
@@ -128,8 +152,8 @@ export default function StudentProfile() {
           );
           if (found) setSelectedRegion(found.key);
         }
-        if (res.data.province) {
-          const saved = res.data.province.toLowerCase().trim();
+        if (data.province) {
+          const saved = data.province.toLowerCase().trim();
           const found = phProvinces.find(p => p.name.toLowerCase() === saved || p.key.toLowerCase() === saved);
           if (found) setSelectedProvince(found.key);
         }
@@ -177,6 +201,7 @@ export default function StudentProfile() {
         if (!values.grade_level_to_enroll) missing.push('Grade Level to Enroll');
         if (!values.semester) missing.push('Semester');
         if (!values.strand) missing.push('Strand');
+        if (!values.lrn) missing.push('LRN');
         if (values.enrollment_type === 'TRANSFEREE' && !values.last_school_attended) missing.push('Last School Attended');
         if (missing.length > 0) { toast.error(`Please fill in: ${missing.join(', ')}`); return; }
       } else if (step === 3) {
@@ -353,6 +378,7 @@ export default function StudentProfile() {
       grade_level_to_enroll: 'Grade Level to Enroll',
       semester: 'Semester',
       strand: 'Strand',
+      lrn: 'LRN',
       birthday: 'Birthday',
       sex: 'Sex',
     };
@@ -598,31 +624,35 @@ export default function StudentProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>School Year</label>
-              <input {...register('school_year')} disabled={isLocked} className={inputClass} placeholder="e.g. 2024-2025" />
+              <input {...register('school_year')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} placeholder="Set by admin" />
             </div>
             <div>
               <label className={labelClass}>Semester <span className="text-red-500">*</span></label>
-              <select {...register('semester')} disabled={isLocked} className={selectClass}>
-                <option value="">Select</option>
-                <option value="1st Semester">1st Semester</option>
-                <option value="2nd Semester">2nd Semester</option>
-              </select>
+              <input {...register('semester')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} placeholder="Set by admin" />
             </div>
             <div>
-              <label className={labelClass}>LRN</label>
+              <label className={labelClass}>LRN <span className="text-red-500">*</span></label>
               <input {...register('lrn')} disabled={isLocked} className={inputClass} placeholder="Learner Reference Number" />
             </div>
             <div>
               <label className={labelClass}>Grade Level to Enroll <span className="text-red-500">*</span></label>
-              <select {...register('grade_level_to_enroll')} disabled={isLocked} className={selectClass}>
-                <option value="">Select</option>
-                <option value="Grade 11">Grade 11</option>
-                <option value="Grade 12">Grade 12</option>
-              </select>
+              {enrollmentType === 'NEW_ENROLLEE' ? (
+                <input value="Grade 11" disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+              ) : (
+                <select {...register('grade_level_to_enroll')} disabled={isLocked} className={selectClass}>
+                  <option value="">Select</option>
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                </select>
+              )}
             </div>
             <div>
               <label className={labelClass}>Last Grade Completed</label>
-              <input {...register('last_grade_level_completed')} disabled={isLocked} className={inputClass} />
+              {enrollmentType === 'NEW_ENROLLEE' ? (
+                <input value="Grade 10" disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+              ) : (
+                <input {...register('last_grade_level_completed')} disabled={isLocked} className={inputClass} />
+              )}
             </div>
             <div>
               <label className={labelClass}>Last School Year Completed</label>
@@ -660,11 +690,11 @@ export default function StudentProfile() {
             </div>
             <div>
               <label className={labelClass}>School to Enroll In</label>
-              <input {...register('school_to_enroll_in')} disabled={isLocked} className={inputClass} />
+              <input {...register('school_to_enroll_in')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>School Address</label>
-              <input {...register('school_address')} disabled={isLocked} className={inputClass} />
+              <input {...register('school_address')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
             </div>
           </div>
         </div>
