@@ -528,7 +528,16 @@ def get_academic_calendar(
     """Get the current academic calendar settings."""
     calendar = db.query(AcademicCalendar).first()
     if not calendar:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No academic calendar set yet")
+        current_year = datetime.now(timezone.utc).year
+        return AcademicCalendarResponse(
+            id=0,
+            school_year=f"{current_year}-{current_year + 1}",
+            semester="1st",
+            enrollment_start=None,
+            enrollment_end=None,
+            is_open=False,
+            updated_at=datetime.now(timezone.utc),
+        )
     return calendar
 
 
