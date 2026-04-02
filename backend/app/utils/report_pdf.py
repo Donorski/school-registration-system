@@ -232,6 +232,8 @@ def build_enrollment_report(
     by_strand: dict | None = None,
     by_grade_level: dict | None = None,
     by_enrollment_type: dict | None = None,
+    by_sex: dict | None = None,
+    by_payment: dict | None = None,
 ) -> bytes:
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -337,11 +339,14 @@ def build_enrollment_report(
     c_br = _make_hbar(by_grade_level or {}, CARD_W, CARD_H,
                       "Students by Grade Level")
 
+    ROW_GAP = 10   # vertical space between chart rows
+
     grid = Table(
         [[c_tl, c_tr],
+         [Spacer(1, ROW_GAP), Spacer(1, ROW_GAP)],
          [c_bl, c_br]],
         colWidths=[CARD_W, CARD_W],
-        rowHeights=[CARD_H, CARD_H],
+        rowHeights=[CARD_H, ROW_GAP, CARD_H],
     )
     grid.setStyle(TableStyle([
         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
@@ -349,13 +354,17 @@ def build_enrollment_report(
         ("LEFTPADDING",   (0, 0), (-1, -1), 0),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
         ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), GAP),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ("RIGHTPADDING",  (0, 0), (0, -1),  GAP),
     ]))
     story.append(grid)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 12))
 
-    # ── Summary table ─────────────────────────────────────────────────
+    # ── Summary table (left) + Side panel (right) ─────────────────────
+    LEFT_W  = 4.1 * inch
+    RIGHT_W = PAGE_W - LEFT_W - 0.2 * inch
+
+    # Left: enrollment summary
     summary_data = [
         ["Metric",            "Count"],
         ["Total Registrants",  str(total_count)],
@@ -364,12 +373,12 @@ def build_enrollment_report(
         ["Denied",             str(denied_count)],
         ["Fully Enrolled",     str(enrolled_count)],
     ]
-    summary_table = Table(summary_data, colWidths=[3.5*inch, 1.5*inch])
-    summary_table.setStyle(TableStyle([
+    left_table = Table(summary_data, colWidths=[LEFT_W - 1.2*inch, 1.2*inch])
+    left_table.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
         ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
         ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, 0),  9.5),
+        ("FONTSIZE",      (0, 0), (-1, 0),  9),
         ("ALIGN",         (0, 0), (-1, 0),  "LEFT"),
         ("LEFTPADDING",   (0, 0), (-1, 0),  8),
         ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
@@ -381,14 +390,72 @@ def build_enrollment_report(
         ("BACKGROUND",    (0, 4), (-1, 4),  ROW_ALT),
         ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
         ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE",      (0, 1), (-1, -1), 9.5),
+        ("FONTSIZE",      (0, 1), (-1, -1), 9),
         ("ALIGN",         (1, 0), (1, -1),  "CENTER"),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING",   (0, 1), (-1, -1), 8),
         ("TOPPADDING",    (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
-    story.append(summary_table)
+
+    # Right: sex, payment status, enrollment rate
+    enroll_rate = (
+        f"{round(enrolled_count / approved_count * 100)}%"
+        if approved_count else "N/A"
+    )
+    male_count   = (by_sex or {}).get("Male", 0)
+    female_count = (by_sex or {}).get("Female", 0)
+    pay_verified = (by_payment or {}).get("Verified", 0)
+    pay_pending  = (by_payment or {}).get("Pending", 0)
+
+    side_data = [
+        ["Additional Metrics", ""],
+        ["Male Students",      str(male_count)],
+        ["Female Students",    str(female_count)],
+        ["Payment Verified",   str(pay_verified)],
+        ["Payment Pending",    str(pay_pending)],
+        ["Enrollment Rate",    enroll_rate],
+    ]
+    right_table = Table(side_data, colWidths=[RIGHT_W - 0.85*inch, 0.85*inch])
+    right_table.setStyle(TableStyle([
+        # Header spans both cols
+        ("SPAN",          (0, 0), (1, 0)),
+        ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
+        ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
+        ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 0), (-1, 0),  9),
+        ("ALIGN",         (0, 0), (-1, 0),  "CENTER"),
+        # Sex rows — blue tint
+        ("BACKGROUND",    (0, 1), (-1, 2),  colors.HexColor("#eff6ff")),
+        # Payment rows — amber tint
+        ("BACKGROUND",    (0, 3), (-1, 4),  colors.HexColor("#fffbeb")),
+        # Enrollment rate row — green highlight
+        ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
+        ("FONTNAME",      (0, 5), (-1, 5),  "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0, 5), (-1, 5),  HEADER_BG),
+        ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
+        ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE",      (0, 1), (-1, -1), 8.5),
+        ("ALIGN",         (1, 1), (1, -1),  "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 7),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+
+    side_by_side = Table(
+        [[left_table, right_table]],
+        colWidths=[LEFT_W, RIGHT_W],
+    )
+    side_by_side.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING",   (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (0, -1),  0.2*inch),
+    ]))
+    story.append(side_by_side)
 
     _footer("Page 1 of 2")
 

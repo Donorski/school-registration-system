@@ -678,6 +678,25 @@ def generate_enrollment_report(
         for et, count in et_rows
     }
 
+    # Sex breakdown
+    sex_rows = (
+        base_q.with_entities(Student.sex, func.count(Student.id))
+        .filter(Student.sex.isnot(None))
+        .group_by(Student.sex)
+        .all()
+    )
+    by_sex = {(s.value if hasattr(s, "value") else str(s)).title(): cnt for s, cnt in sex_rows}
+
+    # Payment status breakdown
+    pay_rows = (
+        base_q.with_entities(Student.payment_status, func.count(Student.id))
+        .filter(Student.payment_status.isnot(None))
+        .group_by(Student.payment_status)
+        .all()
+    )
+    by_payment = {(p.value if hasattr(p, "value") else str(p)).replace("_", " ").title(): cnt
+                  for p, cnt in pay_rows}
+
     # Fully enrolled = payment verified AND at least one subject assigned
     enrolled_q = (
         db.query(Student)
@@ -707,6 +726,8 @@ def generate_enrollment_report(
         by_strand=by_strand,
         by_grade_level=by_grade,
         by_enrollment_type=by_enrollment_type,
+        by_sex=by_sex,
+        by_payment=by_payment,
     )
 
     parts = ["enrollment_report"]
