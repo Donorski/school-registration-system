@@ -266,9 +266,9 @@ def build_enrollment_report(
     story    = []
     now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
     PAGE_W   = 7.0 * inch
-    GAP      = 6        # gap between chart cards (points)
-    CARD_W   = (PAGE_W - GAP) / 2
-    CARD_H   = 158      # compact but readable
+    GAP      = 12       # gap between chart cards (points)
+    CARD_W   = (PAGE_W - GAP) / 2 - 4
+    CARD_H   = 140      # compact but readable
 
     filter_sy  = school_year or "All School Years"
     filter_sem = semester    or "All Semesters"
@@ -350,7 +350,7 @@ def build_enrollment_report(
         ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
         ("TOPPADDING",    (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), GAP),
-        ("COLPADDING",    (0, 0), (-1, -1), GAP / 2),
+        ("RIGHTPADDING",  (0, 0), (0, -1),  GAP),
     ]))
     story.append(grid)
     story.append(Spacer(1, 10))
