@@ -48,8 +48,9 @@ STATUS_COLORS = [
 
 # ── Chart helpers ──────────────────────────────────────────────────────
 
-def _card(drawing: Drawing, w: float, h: float, title: str) -> Drawing:
-    """Wrap a drawing in a card: background rect + title bar."""
+def _card(drawing: Drawing, w: float, h: float, title: str,
+          description: str = "") -> Drawing:
+    """Wrap a drawing in a card: background rect + title bar + optional caption."""
     card = Drawing(w, h)
     # card background
     card.add(Rect(0, 0, w, h, rx=4, ry=4,
@@ -63,14 +64,20 @@ def _card(drawing: Drawing, w: float, h: float, title: str) -> Drawing:
     card.add(String(w / 2, h - 13, title,
                     textAnchor="middle", fontSize=7.5,
                     fontName="Helvetica-Bold", fillColor=colors.white))
-    # embed the inner drawing (offset below title bar)
+    # embed the inner drawing
     for g in drawing.contents:
         card.add(g)
+    # caption at the bottom
+    if description:
+        card.add(String(w / 2, 4, description,
+                        textAnchor="middle", fontSize=5.5,
+                        fontName="Helvetica-Oblique", fillColor=TEXT_MUTED))
     return card
 
 
 def _make_pie(data_dict: dict, w: float, h: float, title: str,
-              slice_colors: list | None = None) -> Drawing:
+              slice_colors: list | None = None,
+              description: str = "") -> Drawing:
     inner_h = h - 20   # below title bar
     inner_w = w
     drawing = Drawing(inner_w, inner_h)
@@ -121,7 +128,7 @@ def _make_pie(data_dict: dict, w: float, h: float, title: str,
     ]
     drawing.add(legend)
 
-    return _card(drawing, w, h, title)
+    return _card(drawing, w, h, title, description)
 
 
 def _rotated_label(text: str, x: float, y: float, font_size: float = 6) -> Group:
@@ -134,7 +141,8 @@ def _rotated_label(text: str, x: float, y: float, font_size: float = 6) -> Group
 
 
 def _make_vbar(data_dict: dict, w: float, h: float, title: str,
-               x_label: str = "", y_label: str = "No. of Students") -> Drawing:
+               x_label: str = "", y_label: str = "No. of Students",
+               description: str = "") -> Drawing:
     inner_h = h - 20
     drawing = Drawing(w, inner_h)
 
@@ -190,11 +198,12 @@ def _make_vbar(data_dict: dict, w: float, h: float, title: str,
                            textAnchor="middle", fontSize=6,
                            fontName="Helvetica", fillColor=TEXT_MUTED))
 
-    return _card(drawing, w, h, title)
+    return _card(drawing, w, h, title, description)
 
 
 def _make_hbar(data_dict: dict, w: float, h: float, title: str,
-               x_label: str = "No. of Students", y_label: str = "") -> Drawing:
+               x_label: str = "No. of Students", y_label: str = "",
+               description: str = "") -> Drawing:
     inner_h = h - 20
     drawing = Drawing(w, inner_h)
 
@@ -246,7 +255,7 @@ def _make_hbar(data_dict: dict, w: float, h: float, title: str,
     if y_label:
         drawing.add(_rotated_label(y_label, 7, bc.y + bc.height / 2))
 
-    return _card(drawing, w, h, title)
+    return _card(drawing, w, h, title, description)
 
 
 # ── Main builder ───────────────────────────────────────────────────────
@@ -267,6 +276,21 @@ def build_enrollment_report(
     by_payment: dict | None = None,
 ) -> bytes:
     buffer = BytesIO()
+
+    now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
+
+    def _on_page(canvas, doc):
+        """Draw footer on every page automatically."""
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(TEXT_MUTED)
+        footer_text = (
+            f"Generated on {now_str} by the School Registration System"
+            f"  ·  Page {doc.page}"
+        )
+        canvas.drawCentredString(letter[0] / 2, 0.45 * inch, footer_text)
+        canvas.restoreState()
+
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
@@ -291,14 +315,9 @@ def build_enrollment_report(
         "Body2", parent=styles["Normal"],
         fontSize=10, textColor=TEXT_DARK, leading=14,
     )
-    footer_style = ParagraphStyle(
-        "Footer", parent=styles["Normal"],
-        fontSize=7.5, textColor=TEXT_MUTED, alignment=TA_CENTER,
-    )
 
-    story    = []
-    now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
-    PAGE_W   = 7.0 * inch
+    story  = []
+    PAGE_W = 7.0 * inch
     GAP      = 12       # gap between chart cards (points)
     CARD_W   = (PAGE_W - GAP) / 2 - 4
     CARD_H   = 140      # compact but readable
@@ -336,14 +355,6 @@ def build_enrollment_report(
         ]))
         story.append(t)
 
-    def _footer(page_label: str):
-        story.append(Spacer(1, 8))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER))
-        story.append(Spacer(1, 4))
-        story.append(Paragraph(
-            f"Generated on {now_str} by the School Registration System  ·  {page_label}",
-            footer_style,
-        ))
 
     # ══════════════════════════════════════════════════════════════════
     # PAGE 1 — Section I: Charts (2×2) + Enrollment Summary table
@@ -361,16 +372,20 @@ def build_enrollment_report(
     if approved_count:  status_dict["Approved"] = approved_count
     if denied_count:    status_dict["Denied"]   = denied_count
 
-    c_tl = _make_pie(status_dict,           CARD_W, CARD_H,
-                     "Application Status",  STATUS_COLORS)
+    c_tl = _make_pie(status_dict,              CARD_W, CARD_H,
+                     "Application Status",    STATUS_COLORS,
+                     description="Shows how many applicants are Pending review, Approved, or Denied.")
     c_tr = _make_pie(by_enrollment_type or {}, CARD_W, CARD_H,
-                     "Enrollment Type")
-    c_bl = _make_vbar(by_strand or {},      CARD_W, CARD_H,
+                     "Enrollment Type",
+                     description="Classifies students as New, Returning (Old), or Transferee enrollees.")
+    c_bl = _make_vbar(by_strand or {},         CARD_W, CARD_H,
                       "Students by Strand",
-                      x_label="Strand", y_label="No. of Students")
-    c_br = _make_hbar(by_grade_level or {}, CARD_W, CARD_H,
+                      x_label="Strand", y_label="No. of Students",
+                      description="Total number of applicants grouped by their chosen academic strand.")
+    c_br = _make_hbar(by_grade_level or {},    CARD_W, CARD_H,
                       "Students by Grade Level",
-                      x_label="No. of Students", y_label="Grade Level")
+                      x_label="No. of Students", y_label="Grade Level",
+                      description="Total number of applicants per grade level across all strands.")
 
     ROW_GAP = 10   # vertical space between chart rows
 
@@ -399,10 +414,10 @@ def build_enrollment_report(
 
     # Left: enrollment summary
     summary_data = [
-        ["Metric",            "Count"],
+        ["Enrollment Status",  "No. of Students"],
         ["Total Registrants",  str(total_count)],
         ["Approved",           str(approved_count)],
-        ["Pending",            str(pending_count)],
+        ["Pending Review",     str(pending_count)],
         ["Denied",             str(denied_count)],
         ["Fully Enrolled",     str(enrolled_count)],
     ]
@@ -442,12 +457,12 @@ def build_enrollment_report(
     pay_pending  = (by_payment or {}).get("Pending", 0)
 
     side_data = [
-        ["Additional Metrics", ""],
-        ["Male Students",      str(male_count)],
-        ["Female Students",    str(female_count)],
-        ["Payment Verified",   str(pay_verified)],
-        ["Payment Pending",    str(pay_pending)],
-        ["Enrollment Rate",    enroll_rate],
+        ["Student Demographics",        ""],
+        ["Male Students",               str(male_count)],
+        ["Female Students",             str(female_count)],
+        ["Payment Verified (Paid)",     str(pay_verified)],
+        ["Payment Pending (Unverified)", str(pay_pending)],
+        ["Enrollment Rate\n(Enrolled ÷ Approved)", enroll_rate],
     ]
     right_table = Table(side_data, colWidths=[RIGHT_W - 0.85*inch, 0.85*inch])
     right_table.setStyle(TableStyle([
@@ -490,7 +505,6 @@ def build_enrollment_report(
     ]))
     story.append(side_by_side)
 
-    _footer("Page 1 of 2")
 
     # ══════════════════════════════════════════════════════════════════
     # PAGE 2 — Section II: Fully Enrolled Students List
@@ -546,8 +560,7 @@ def build_enrollment_report(
         ]))
         story.append(enrolled_table)
 
-    _footer("Page 2 of 2")
 
-    doc.build(story)
+    doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     buffer.seek(0)
     return buffer.read()
