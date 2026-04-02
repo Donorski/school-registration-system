@@ -11,19 +11,21 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak,
 )
-from reportlab.graphics.shapes import Drawing, String
+from reportlab.graphics.shapes import Drawing, String, Rect
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart, HorizontalBarChart
 from reportlab.graphics.charts.legends import Legend
 
-# ── Brand colours (match the app's emerald palette) ──────────────────
-HEADER_BG  = colors.HexColor("#065f46")   # emerald-800
+# ── Brand colours ─────────────────────────────────────────────────────
+HEADER_BG  = colors.HexColor("#065f46")
 HEADER_FG  = colors.white
-ACCENT     = colors.HexColor("#10b981")   # emerald-500
-ROW_ALT    = colors.HexColor("#f0fdf4")   # emerald-50
-BORDER     = colors.HexColor("#d1d5db")   # gray-300
-TEXT_DARK  = colors.HexColor("#1f2937")   # gray-800
-TEXT_MUTED = colors.HexColor("#6b7280")   # gray-500
+ACCENT     = colors.HexColor("#10b981")
+ROW_ALT    = colors.HexColor("#f0fdf4")
+BORDER     = colors.HexColor("#d1d5db")
+TEXT_DARK  = colors.HexColor("#1f2937")
+TEXT_MUTED = colors.HexColor("#6b7280")
+CARD_BG    = colors.HexColor("#f9fafb")
+CARD_BORDER= colors.HexColor("#e5e7eb")
 
 CHART_COLORS = [
     colors.HexColor("#10b981"),
@@ -38,106 +40,129 @@ CHART_COLORS = [
     colors.HexColor("#84cc16"),
 ]
 STATUS_COLORS = [
-    colors.HexColor("#f59e0b"),  # Pending  — amber
-    colors.HexColor("#22c55e"),  # Approved — green
-    colors.HexColor("#ef4444"),  # Denied   — red
+    colors.HexColor("#f59e0b"),  # Pending
+    colors.HexColor("#22c55e"),  # Approved
+    colors.HexColor("#ef4444"),  # Denied
 ]
 
 
-# ── Chart helpers ─────────────────────────────────────────────────────
+# ── Chart helpers ──────────────────────────────────────────────────────
 
-def _make_pie(data_dict: dict, width: float, height: float,
-              title: str, slice_colors: list | None = None) -> Drawing:
-    """Return a Drawing containing a pie chart + legend."""
-    drawing = Drawing(width, height)
+def _card(drawing: Drawing, w: float, h: float, title: str) -> Drawing:
+    """Wrap a drawing in a card: background rect + title bar."""
+    card = Drawing(w, h)
+    # card background
+    card.add(Rect(0, 0, w, h, rx=4, ry=4,
+                  fillColor=CARD_BG, strokeColor=CARD_BORDER, strokeWidth=0.5))
+    # title bar
+    card.add(Rect(0, h - 18, w, 18, rx=4, ry=4,
+                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
+    # cover bottom-round corners of title bar (make bottom straight)
+    card.add(Rect(0, h - 18, w, 10,
+                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
+    card.add(String(w / 2, h - 13, title,
+                    textAnchor="middle", fontSize=7.5,
+                    fontName="Helvetica-Bold", fillColor=colors.white))
+    # embed the inner drawing (offset below title bar)
+    for g in drawing.contents:
+        card.add(g)
+    return card
+
+
+def _make_pie(data_dict: dict, w: float, h: float, title: str,
+              slice_colors: list | None = None) -> Drawing:
+    inner_h = h - 20   # below title bar
+    inner_w = w
+    drawing = Drawing(inner_w, inner_h)
 
     items = [(k, v) for k, v in data_dict.items() if v > 0]
     if not items:
-        drawing.add(String(width / 2, height / 2, "No data",
-                           textAnchor="middle", fontSize=9,
+        drawing.add(String(inner_w / 2, inner_h / 2 - 6, "No data",
+                           textAnchor="middle", fontSize=8,
                            fontName="Helvetica", fillColor=TEXT_MUTED))
-        return drawing
+        return _card(drawing, w, h, title)
 
     labels, values = zip(*items)
     palette = slice_colors or CHART_COLORS
+    pie_size = min(inner_h - 20, 90)
 
     pie = Pie()
     pie.x = 10
-    pie.y = 20
-    pie.width  = height - 45
-    pie.height = height - 45
+    pie.y = (inner_h - pie_size) / 2
+    pie.width  = pie_size
+    pie.height = pie_size
     pie.data   = list(values)
-    pie.labels = [""] * len(labels)   # labels shown in legend only
+    pie.labels = [""] * len(labels)
     pie.simpleLabels = 1
 
     for i in range(len(values)):
         pie.slices[i].fillColor   = palette[i % len(palette)]
         pie.slices[i].strokeColor = colors.white
-        pie.slices[i].strokeWidth = 1.5
+        pie.slices[i].strokeWidth = 1.2
+        pie.slices[i].popout      = 0
 
     drawing.add(pie)
 
-    # Legend
+    # Compact legend to the right of pie
     legend = Legend()
-    legend.x             = pie.x + pie.width + 12
-    legend.y             = height - 24
-    legend.dx            = 9
-    legend.dy            = 9
+    legend.x             = pie.x + pie_size + 10
+    legend.y             = pie.y + pie_size - 2
+    legend.dx            = 8
+    legend.dy            = 8
     legend.fontName      = "Helvetica"
-    legend.fontSize      = 7.5
+    legend.fontSize      = 6.5
     legend.strokeColor   = None
     legend.alignment     = "left"
-    legend.columnMaximum = 8
+    legend.deltay        = 13
+    legend.columnMaximum = 10
     legend.colorNamePairs = [
-        (palette[i % len(palette)], f"{labels[i]}  ({values[i]})")
+        (palette[i % len(palette)], f"{labels[i]} ({values[i]})")
         for i in range(len(labels))
     ]
     drawing.add(legend)
 
-    # Title
-    drawing.add(String(width / 2, height - 10, title,
-                       textAnchor="middle", fontSize=9,
-                       fontName="Helvetica-Bold", fillColor=HEADER_BG))
-    return drawing
+    return _card(drawing, w, h, title)
 
 
-def _make_vbar(data_dict: dict, width: float, height: float, title: str) -> Drawing:
-    """Return a Drawing containing a vertical bar chart."""
-    drawing = Drawing(width, height)
+def _make_vbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
+    inner_h = h - 20
+    drawing = Drawing(w, inner_h)
 
     items = [(k, v) for k, v in data_dict.items() if v > 0]
     if not items:
-        drawing.add(String(width / 2, height / 2, "No data",
-                           textAnchor="middle", fontSize=9,
+        drawing.add(String(w / 2, inner_h / 2 - 6, "No data",
+                           textAnchor="middle", fontSize=8,
                            fontName="Helvetica", fillColor=TEXT_MUTED))
-        return drawing
+        return _card(drawing, w, h, title)
 
     labels, values = zip(*items)
     max_v = max(values)
 
     bc = VerticalBarChart()
-    bc.x      = 35
-    bc.y      = 35
-    bc.width  = width - 50
-    bc.height = height - 60
-    bc.data   = [list(values)]
+    bc.x      = 22
+    bc.y      = 22
+    bc.width  = w - 34
+    bc.height = inner_h - 38
 
+    bc.data = [list(values)]
     bc.valueAxis.valueMin  = 0
-    bc.valueAxis.valueMax  = max_v + max(1, max_v // 5)
-    bc.valueAxis.valueStep = max(1, max_v // 5)
-    bc.valueAxis.labels.fontName = "Helvetica"
-    bc.valueAxis.labels.fontSize = 7.5
+    bc.valueAxis.valueMax  = max_v + max(1, round(max_v * 0.2))
+    bc.valueAxis.valueStep = max(1, round(max_v / 4))
+    bc.valueAxis.labels.fontName  = "Helvetica"
+    bc.valueAxis.labels.fontSize  = 6
+    bc.valueAxis.gridStrokeColor  = colors.HexColor("#f3f4f6")
+    bc.valueAxis.gridStrokeWidth  = 0.5
 
-    bc.categoryAxis.categoryNames          = list(labels)
-    bc.categoryAxis.labels.fontName        = "Helvetica"
-    bc.categoryAxis.labels.fontSize        = 7.5
-    bc.categoryAxis.labels.angle           = 20 if len(labels) > 5 else 0
-    bc.categoryAxis.labels.boxAnchor       = "ne" if len(labels) > 5 else "n"
-    bc.categoryAxis.labels.dx              = -4 if len(labels) > 5 else 0
-    bc.categoryAxis.labels.dy              = -6 if len(labels) > 5 else -3
+    bc.categoryAxis.categoryNames    = list(labels)
+    bc.categoryAxis.labels.fontName  = "Helvetica"
+    bc.categoryAxis.labels.fontSize  = 6
+    bc.categoryAxis.labels.angle     = 15 if len(labels) > 4 else 0
+    bc.categoryAxis.labels.boxAnchor = "ne" if len(labels) > 4 else "n"
+    bc.categoryAxis.labels.dx        = -3 if len(labels) > 4 else 0
+    bc.categoryAxis.labels.dy        = -4
 
-    bc.groupSpacing = 8
-    bc.barSpacing   = 2
+    bc.groupSpacing = 6
+    bc.barSpacing   = 1
     bc.bars[0].fillColor   = ACCENT
     bc.bars[0].strokeColor = None
 
@@ -145,46 +170,44 @@ def _make_vbar(data_dict: dict, width: float, height: float, title: str) -> Draw
         bc.bars[0, i].fillColor = CHART_COLORS[i % len(CHART_COLORS)]
 
     drawing.add(bc)
-    drawing.add(String(width / 2, height - 10, title,
-                       textAnchor="middle", fontSize=9,
-                       fontName="Helvetica-Bold", fillColor=HEADER_BG))
-    return drawing
+    return _card(drawing, w, h, title)
 
 
-def _make_hbar(data_dict: dict, width: float, height: float, title: str) -> Drawing:
-    """Return a Drawing containing a horizontal bar chart."""
-    drawing = Drawing(width, height)
+def _make_hbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
+    inner_h = h - 20
+    drawing = Drawing(w, inner_h)
 
     items = [(k, v) for k, v in data_dict.items() if v > 0]
     if not items:
-        drawing.add(String(width / 2, height / 2, "No data",
-                           textAnchor="middle", fontSize=9,
+        drawing.add(String(w / 2, inner_h / 2 - 6, "No data",
+                           textAnchor="middle", fontSize=8,
                            fontName="Helvetica", fillColor=TEXT_MUTED))
-        return drawing
+        return _card(drawing, w, h, title)
 
     labels, values = zip(*items)
     max_v = max(values)
 
     bc = HorizontalBarChart()
-    bc.x      = 85
-    bc.y      = 20
-    bc.width  = width - 105
-    bc.height = height - 45
+    bc.x      = 62
+    bc.y      = 12
+    bc.width  = w - 76
+    bc.height = inner_h - 24
 
     bc.data = [list(values)]
-
     bc.valueAxis.valueMin  = 0
-    bc.valueAxis.valueMax  = max_v + max(1, max_v // 5)
-    bc.valueAxis.valueStep = max(1, max_v // 5)
-    bc.valueAxis.labels.fontName = "Helvetica"
-    bc.valueAxis.labels.fontSize = 7.5
+    bc.valueAxis.valueMax  = max_v + max(1, round(max_v * 0.2))
+    bc.valueAxis.valueStep = max(1, round(max_v / 4))
+    bc.valueAxis.labels.fontName  = "Helvetica"
+    bc.valueAxis.labels.fontSize  = 6
+    bc.valueAxis.gridStrokeColor  = colors.HexColor("#f3f4f6")
+    bc.valueAxis.gridStrokeWidth  = 0.5
 
-    bc.categoryAxis.categoryNames    = list(labels)
-    bc.categoryAxis.labels.fontName  = "Helvetica"
-    bc.categoryAxis.labels.fontSize  = 7.5
+    bc.categoryAxis.categoryNames   = list(labels)
+    bc.categoryAxis.labels.fontName = "Helvetica"
+    bc.categoryAxis.labels.fontSize = 6
 
-    bc.groupSpacing = 8
-    bc.barSpacing   = 2
+    bc.groupSpacing = 6
+    bc.barSpacing   = 1
     bc.bars[0].fillColor   = ACCENT
     bc.bars[0].strokeColor = None
 
@@ -192,13 +215,10 @@ def _make_hbar(data_dict: dict, width: float, height: float, title: str) -> Draw
         bc.bars[0, i].fillColor = CHART_COLORS[i % len(CHART_COLORS)]
 
     drawing.add(bc)
-    drawing.add(String(width / 2, height - 10, title,
-                       textAnchor="middle", fontSize=9,
-                       fontName="Helvetica-Bold", fillColor=HEADER_BG))
-    return drawing
+    return _card(drawing, w, h, title)
 
 
-# ── Main builder ──────────────────────────────────────────────────────
+# ── Main builder ───────────────────────────────────────────────────────
 
 def build_enrollment_report(
     students: list,
@@ -226,13 +246,13 @@ def build_enrollment_report(
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         "Title2", parent=styles["Title"],
-        fontSize=18, leading=22, textColor=HEADER_BG,
+        fontSize=16, leading=20, textColor=HEADER_BG,
         alignment=TA_CENTER, spaceAfter=2,
     )
     section_style = ParagraphStyle(
         "Section", parent=styles["Heading2"],
-        fontSize=12, textColor=HEADER_BG,
-        spaceBefore=12, spaceAfter=6,
+        fontSize=11, textColor=HEADER_BG,
+        spaceBefore=8, spaceAfter=4,
     )
     body_style = ParagraphStyle(
         "Body2", parent=styles["Normal"],
@@ -240,23 +260,27 @@ def build_enrollment_report(
     )
     footer_style = ParagraphStyle(
         "Footer", parent=styles["Normal"],
-        fontSize=8, textColor=TEXT_MUTED, alignment=TA_CENTER,
+        fontSize=7.5, textColor=TEXT_MUTED, alignment=TA_CENTER,
     )
 
-    story = []
+    story    = []
     now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
-    PAGE_W   = 7.0 * inch   # usable width (letter − margins)
-    CHART_H  = 185
+    PAGE_W   = 7.0 * inch
+    GAP      = 6        # gap between chart cards (points)
+    CARD_W   = (PAGE_W - GAP) / 2
+    CARD_H   = 158      # compact but readable
 
     filter_sy  = school_year or "All School Years"
     filter_sem = semester    or "All Semesters"
 
+    # ── Reusable blocks ───────────────────────────────────────────────
+
     def _letterhead():
-        story.append(Spacer(1, 4))
-        story.append(HRFlowable(width="100%", thickness=2, color=ACCENT, spaceAfter=6))
+        story.append(Spacer(1, 2))
+        story.append(HRFlowable(width="100%", thickness=2, color=ACCENT, spaceAfter=5))
         story.append(Paragraph("STUDENT ENROLLMENT REPORT", title_style))
         story.append(HRFlowable(width="100%", thickness=2, color=ACCENT,
-                                spaceBefore=6, spaceAfter=10))
+                                spaceBefore=5, spaceAfter=8))
 
     def _meta():
         t = Table(
@@ -264,13 +288,13 @@ def build_enrollment_report(
                 ["Date Generated:", now_str,  "School Year:", filter_sy],
                 ["",                "",        "Semester:",    filter_sem],
             ],
-            colWidths=[1.3 * inch, 2.5 * inch, 1.1 * inch, 2.1 * inch],
+            colWidths=[1.3*inch, 2.5*inch, 1.1*inch, 2.1*inch],
         )
         t.setStyle(TableStyle([
             ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
             ("FONTNAME",  (0, 0), (0, -1),  "Helvetica-Bold"),
             ("FONTNAME",  (2, 0), (2, -1),  "Helvetica-Bold"),
-            ("FONTSIZE",  (0, 0), (-1, -1), 9),
+            ("FONTSIZE",  (0, 0), (-1, -1), 8.5),
             ("TEXTCOLOR", (0, 0), (-1, -1), TEXT_DARK),
             ("TEXTCOLOR", (1, 0), (1, -1),  TEXT_MUTED),
             ("TEXTCOLOR", (3, 0), (3, -1),  TEXT_MUTED),
@@ -280,24 +304,58 @@ def build_enrollment_report(
         story.append(t)
 
     def _footer(page_label: str):
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 8))
         story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER))
-        story.append(Spacer(1, 6))
+        story.append(Spacer(1, 4))
         story.append(Paragraph(
             f"Generated on {now_str} by the School Registration System  ·  {page_label}",
             footer_style,
         ))
 
-    # ════════════════════════════════════════════════════════════════
-    # PAGE 1 — Section I: Enrollment Summary + Charts
-    # ════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════
+    # PAGE 1 — Section I: Charts (2×2) + Enrollment Summary table
+    # ══════════════════════════════════════════════════════════════════
     _letterhead()
     _meta()
-    story.append(Spacer(1, 16))
+    story.append(Spacer(1, 10))
 
     story.append(Paragraph("I. ENROLLMENT SUMMARY", section_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
 
+    # ── 2×2 chart grid ────────────────────────────────────────────────
+    status_dict = {}
+    if pending_count:   status_dict["Pending"]  = pending_count
+    if approved_count:  status_dict["Approved"] = approved_count
+    if denied_count:    status_dict["Denied"]   = denied_count
+
+    c_tl = _make_pie(status_dict,           CARD_W, CARD_H,
+                     "Application Status",  STATUS_COLORS)
+    c_tr = _make_pie(by_enrollment_type or {}, CARD_W, CARD_H,
+                     "Enrollment Type")
+    c_bl = _make_vbar(by_strand or {},      CARD_W, CARD_H,
+                      "Students by Strand")
+    c_br = _make_hbar(by_grade_level or {}, CARD_W, CARD_H,
+                      "Students by Grade Level")
+
+    grid = Table(
+        [[c_tl, c_tr],
+         [c_bl, c_br]],
+        colWidths=[CARD_W, CARD_W],
+        rowHeights=[CARD_H, CARD_H],
+    )
+    grid.setStyle(TableStyle([
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), GAP),
+        ("COLPADDING",    (0, 0), (-1, -1), GAP / 2),
+    ]))
+    story.append(grid)
+    story.append(Spacer(1, 10))
+
+    # ── Summary table ─────────────────────────────────────────────────
     summary_data = [
         ["Metric",            "Count"],
         ["Total Registrants",  str(total_count)],
@@ -306,12 +364,12 @@ def build_enrollment_report(
         ["Denied",             str(denied_count)],
         ["Fully Enrolled",     str(enrolled_count)],
     ]
-    summary_table = Table(summary_data, colWidths=[3.5 * inch, 1.5 * inch])
+    summary_table = Table(summary_data, colWidths=[3.5*inch, 1.5*inch])
     summary_table.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
         ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
         ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, 0),  10),
+        ("FONTSIZE",      (0, 0), (-1, 0),  9.5),
         ("ALIGN",         (0, 0), (-1, 0),  "LEFT"),
         ("LEFTPADDING",   (0, 0), (-1, 0),  8),
         ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
@@ -323,59 +381,24 @@ def build_enrollment_report(
         ("BACKGROUND",    (0, 4), (-1, 4),  ROW_ALT),
         ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
         ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE",      (0, 1), (-1, -1), 10),
+        ("FONTSIZE",      (0, 1), (-1, -1), 9.5),
         ("ALIGN",         (1, 0), (1, -1),  "CENTER"),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING",   (0, 1), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
     story.append(summary_table)
-    story.append(Spacer(1, 18))
-
-    # ── Row 1: Status pie  +  Enrollment-type pie ─────────────────
-    status_dict = {}
-    if pending_count:   status_dict["Pending"]  = pending_count
-    if approved_count:  status_dict["Approved"] = approved_count
-    if denied_count:    status_dict["Denied"]   = denied_count
-
-    half = PAGE_W / 2 - 4
-    pie_status = _make_pie(status_dict, half, CHART_H,
-                           "Application Status", STATUS_COLORS)
-    pie_type   = _make_pie(by_enrollment_type or {}, half, CHART_H,
-                           "Enrollment Type")
-
-    row1 = Table([[pie_status, pie_type]], colWidths=[half, half])
-    row1.setStyle(TableStyle([
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(row1)
-    story.append(Spacer(1, 12))
-
-    # ── Row 2: Students by Strand (vertical bar) ──────────────────
-    if by_strand:
-        story.append(_make_vbar(by_strand, PAGE_W, CHART_H, "Students by Strand"))
-        story.append(Spacer(1, 12))
-
-    # ── Row 3: Students by Grade Level (horizontal bar) ───────────
-    if by_grade_level:
-        story.append(_make_hbar(by_grade_level, PAGE_W, CHART_H,
-                                "Students by Grade Level"))
 
     _footer("Page 1 of 2")
 
-    # ════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════
     # PAGE 2 — Section II: Fully Enrolled Students List
-    # ════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════
     story.append(PageBreak())
     _letterhead()
     _meta()
-    story.append(Spacer(1, 16))
+    story.append(Spacer(1, 10))
 
     story.append(Paragraph("II. LIST OF FULLY ENROLLED STUDENTS", section_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
