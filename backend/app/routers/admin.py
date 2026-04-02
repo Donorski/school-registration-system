@@ -648,6 +648,36 @@ def generate_enrollment_report(
     approved_count = base_q.filter(Student.status == StudentStatus.APPROVED).count()
     denied_count   = base_q.filter(Student.status == StudentStatus.DENIED).count()
 
+    # Breakdown by strand
+    strand_rows = (
+        base_q.with_entities(Student.strand, func.count(Student.id))
+        .filter(Student.strand.isnot(None))
+        .group_by(Student.strand)
+        .all()
+    )
+    by_strand = {strand: count for strand, count in strand_rows}
+
+    # Breakdown by grade level
+    grade_rows = (
+        base_q.with_entities(Student.grade_level_to_enroll, func.count(Student.id))
+        .filter(Student.grade_level_to_enroll.isnot(None))
+        .group_by(Student.grade_level_to_enroll)
+        .all()
+    )
+    by_grade = {grade: count for grade, count in grade_rows}
+
+    # Breakdown by enrollment type
+    et_rows = (
+        base_q.with_entities(Student.enrollment_type, func.count(Student.id))
+        .filter(Student.enrollment_type.isnot(None))
+        .group_by(Student.enrollment_type)
+        .all()
+    )
+    by_enrollment_type = {
+        (et.value if hasattr(et, "value") else str(et)).replace("_", " ").title(): count
+        for et, count in et_rows
+    }
+
     # Fully enrolled = payment verified AND at least one subject assigned
     enrolled_q = (
         db.query(Student)
@@ -674,6 +704,9 @@ def generate_enrollment_report(
         approved_count=approved_count,
         denied_count=denied_count,
         enrolled_count=len(enrolled_students),
+        by_strand=by_strand,
+        by_grade_level=by_grade,
+        by_enrollment_type=by_enrollment_type,
     )
 
     parts = ["enrollment_report"]
