@@ -11,7 +11,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak,
 )
-from reportlab.graphics.shapes import Drawing, String, Rect
+from reportlab.graphics.shapes import Drawing, String, Rect, Group
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart, HorizontalBarChart
 from reportlab.graphics.charts.legends import Legend
@@ -124,7 +124,17 @@ def _make_pie(data_dict: dict, w: float, h: float, title: str,
     return _card(drawing, w, h, title)
 
 
-def _make_vbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
+def _rotated_label(text: str, x: float, y: float, font_size: float = 6) -> Group:
+    """Return a Group containing text rotated 90° CCW, centered at (x, y)."""
+    s = String(0, 0, text, textAnchor="middle", fontSize=font_size,
+               fontName="Helvetica", fillColor=TEXT_MUTED)
+    g = Group(s)
+    g.transform = (0, 1, -1, 0, x, y)   # 90° CCW rotation + translate
+    return g
+
+
+def _make_vbar(data_dict: dict, w: float, h: float, title: str,
+               x_label: str = "", y_label: str = "No. of Students") -> Drawing:
     inner_h = h - 20
     drawing = Drawing(w, inner_h)
 
@@ -139,10 +149,10 @@ def _make_vbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
     max_v = max(values)
 
     bc = VerticalBarChart()
-    bc.x      = 22
-    bc.y      = 22
-    bc.width  = w - 34
-    bc.height = inner_h - 38
+    bc.x      = 32    # extra left room for Y-axis label
+    bc.y      = 26    # extra bottom room for X-axis label
+    bc.width  = w - 44
+    bc.height = inner_h - 42
 
     bc.data = [list(values)]
     bc.valueAxis.valueMin  = 0
@@ -170,10 +180,21 @@ def _make_vbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
         bc.bars[0, i].fillColor = CHART_COLORS[i % len(CHART_COLORS)]
 
     drawing.add(bc)
+
+    # Y-axis label (rotated 90° CCW)
+    drawing.add(_rotated_label(y_label, 7, bc.y + bc.height / 2))
+
+    # X-axis label
+    if x_label:
+        drawing.add(String(bc.x + bc.width / 2, 5, x_label,
+                           textAnchor="middle", fontSize=6,
+                           fontName="Helvetica", fillColor=TEXT_MUTED))
+
     return _card(drawing, w, h, title)
 
 
-def _make_hbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
+def _make_hbar(data_dict: dict, w: float, h: float, title: str,
+               x_label: str = "No. of Students", y_label: str = "") -> Drawing:
     inner_h = h - 20
     drawing = Drawing(w, inner_h)
 
@@ -188,10 +209,10 @@ def _make_hbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
     max_v = max(values)
 
     bc = HorizontalBarChart()
-    bc.x      = 62
-    bc.y      = 12
-    bc.width  = w - 76
-    bc.height = inner_h - 24
+    bc.x      = 65
+    bc.y      = 20    # extra bottom room for X-axis label
+    bc.width  = w - 79
+    bc.height = inner_h - 32
 
     bc.data = [list(values)]
     bc.valueAxis.valueMin  = 0
@@ -215,6 +236,16 @@ def _make_hbar(data_dict: dict, w: float, h: float, title: str) -> Drawing:
         bc.bars[0, i].fillColor = CHART_COLORS[i % len(CHART_COLORS)]
 
     drawing.add(bc)
+
+    # X-axis label (value axis — horizontal)
+    drawing.add(String(bc.x + bc.width / 2, 5, x_label,
+                       textAnchor="middle", fontSize=6,
+                       fontName="Helvetica", fillColor=TEXT_MUTED))
+
+    # Y-axis label (category axis — rotated)
+    if y_label:
+        drawing.add(_rotated_label(y_label, 7, bc.y + bc.height / 2))
+
     return _card(drawing, w, h, title)
 
 
@@ -335,9 +366,11 @@ def build_enrollment_report(
     c_tr = _make_pie(by_enrollment_type or {}, CARD_W, CARD_H,
                      "Enrollment Type")
     c_bl = _make_vbar(by_strand or {},      CARD_W, CARD_H,
-                      "Students by Strand")
+                      "Students by Strand",
+                      x_label="Strand", y_label="No. of Students")
     c_br = _make_hbar(by_grade_level or {}, CARD_W, CARD_H,
-                      "Students by Grade Level")
+                      "Students by Grade Level",
+                      x_label="No. of Students", y_label="Grade Level")
 
     ROW_GAP = 10   # vertical space between chart rows
 
