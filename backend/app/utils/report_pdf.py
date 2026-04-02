@@ -48,30 +48,38 @@ STATUS_COLORS = [
 
 # ── Chart helpers ──────────────────────────────────────────────────────
 
+CAPTION_H = 16   # space reserved below each card for the caption
+
+
 def _card(drawing: Drawing, w: float, h: float, title: str,
           description: str = "") -> Drawing:
-    """Wrap a drawing in a card: background rect + title bar + optional caption."""
-    card = Drawing(w, h)
-    # card background
-    card.add(Rect(0, 0, w, h, rx=4, ry=4,
-                  fillColor=CARD_BG, strokeColor=CARD_BORDER, strokeWidth=0.5))
-    # title bar
-    card.add(Rect(0, h - 18, w, 18, rx=4, ry=4,
-                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
-    # cover bottom-round corners of title bar (make bottom straight)
-    card.add(Rect(0, h - 18, w, 10,
-                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
-    card.add(String(w / 2, h - 13, title,
-                    textAnchor="middle", fontSize=7.5,
-                    fontName="Helvetica-Bold", fillColor=colors.white))
-    # embed the inner drawing
-    for g in drawing.contents:
-        card.add(g)
-    # caption at the bottom
+    """Card + optional caption that sits below the card box (never overlaps content)."""
+    total_h = h + CAPTION_H
+    card = Drawing(w, total_h)
+
+    # Caption below the card box
     if description:
-        card.add(String(w / 2, 4, description,
+        card.add(String(w / 2, 3, description,
                         textAnchor="middle", fontSize=5.5,
                         fontName="Helvetica-Oblique", fillColor=TEXT_MUTED))
+
+    # Card box starts at CAPTION_H and goes up to total_h
+    card.add(Rect(0, CAPTION_H, w, h, rx=4, ry=4,
+                  fillColor=CARD_BG, strokeColor=CARD_BORDER, strokeWidth=0.5))
+    # Title bar at the top of the card box
+    card.add(Rect(0, CAPTION_H + h - 18, w, 18, rx=4, ry=4,
+                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
+    card.add(Rect(0, CAPTION_H + h - 18, w, 10,
+                  fillColor=HEADER_BG, strokeColor=None, strokeWidth=0))
+    card.add(String(w / 2, CAPTION_H + h - 13, title,
+                    textAnchor="middle", fontSize=7.5,
+                    fontName="Helvetica-Bold", fillColor=colors.white))
+
+    # Shift all inner drawing content up by CAPTION_H
+    g = Group(*drawing.contents)
+    g.transform = (1, 0, 0, 1, 0, CAPTION_H)
+    card.add(g)
+
     return card
 
 
@@ -394,7 +402,7 @@ def build_enrollment_report(
          [Spacer(1, ROW_GAP), Spacer(1, ROW_GAP)],
          [c_bl, c_br]],
         colWidths=[CARD_W, CARD_W],
-        rowHeights=[CARD_H, ROW_GAP, CARD_H],
+        rowHeights=[CARD_H + CAPTION_H, ROW_GAP, CARD_H + CAPTION_H],
     )
     grid.setStyle(TableStyle([
         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
