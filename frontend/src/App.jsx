@@ -17,6 +17,7 @@ const StudentDetails = lazy(() => import('./pages/admin/StudentDetails'));
 const Settings = lazy(() => import('./pages/admin/Settings'));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
 const Announcements = lazy(() => import('./pages/admin/Announcements'));
+const Reports = lazy(() => import('./pages/admin/Reports'));
 const RegistrarDashboard = lazy(() => import('./pages/registrar/RegistrarDashboard'));
 const Subjects = lazy(() => import('./pages/registrar/Subjects'));
 const AssignSubjects = lazy(() => import('./pages/registrar/AssignSubjects'));
@@ -53,6 +54,7 @@ export default function App() {
       <Route path="/admin/students/:id" element={<PrivateRoute roles={['admin']}><StudentDetails /></PrivateRoute>} />
       <Route path="/admin/audit-logs" element={<PrivateRoute roles={['admin']}><AuditLogs /></PrivateRoute>} />
       <Route path="/admin/announcements" element={<PrivateRoute roles={['admin']}><Announcements /></PrivateRoute>} />
+      <Route path="/admin/reports" element={<PrivateRoute roles={['admin']}><Reports /></PrivateRoute>} />
       <Route path="/admin/settings" element={<PrivateRoute roles={['admin']}><Settings /></PrivateRoute>} />
 
       {/* Registrar */}
