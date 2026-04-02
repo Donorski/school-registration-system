@@ -1,25 +1,27 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import PrivateRoute from './components/PrivateRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import PageTransition from './components/PageTransition';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import StudentDashboard from './pages/student/StudentDashboard';
-import StudentProfile from './pages/student/StudentProfile';
-import StudentSettings from './pages/student/StudentSettings';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import PendingStudents from './pages/admin/PendingStudents';
-import AllStudents from './pages/admin/AllStudents';
-import StudentDetails from './pages/admin/StudentDetails';
-import Settings from './pages/admin/Settings';
-import AuditLogs from './pages/admin/AuditLogs';
-import Announcements from './pages/admin/Announcements';
-import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
-import Subjects from './pages/registrar/Subjects';
-import AssignSubjects from './pages/registrar/AssignSubjects';
-import PaymentReview from './pages/registrar/PaymentReview';
-import Notifications from './pages/Notifications';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
+const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
+const StudentSettings = lazy(() => import('./pages/student/StudentSettings'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const PendingStudents = lazy(() => import('./pages/admin/PendingStudents'));
+const AllStudents = lazy(() => import('./pages/admin/AllStudents'));
+const StudentDetails = lazy(() => import('./pages/admin/StudentDetails'));
+const Settings = lazy(() => import('./pages/admin/Settings'));
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
+const Announcements = lazy(() => import('./pages/admin/Announcements'));
+const RegistrarDashboard = lazy(() => import('./pages/registrar/RegistrarDashboard'));
+const Subjects = lazy(() => import('./pages/registrar/Subjects'));
+const AssignSubjects = lazy(() => import('./pages/registrar/AssignSubjects'));
+const PaymentReview = lazy(() => import('./pages/registrar/PaymentReview'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -34,6 +36,7 @@ export default function App() {
 
   return (
     <PageTransition>
+    <Suspense fallback={<LoadingSpinner size="lg" />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -64,6 +67,7 @@ export default function App() {
       {/* Catch all */}
       <Route path="*" element={<Navigate to={getHomeRedirect()} replace />} />
     </Routes>
+    </Suspense>
     </PageTransition>
   );
 }
