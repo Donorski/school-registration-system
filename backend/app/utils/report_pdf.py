@@ -417,65 +417,95 @@ def build_enrollment_report(
     story.append(Spacer(1, 12))
 
     # ── Summary table (left) + Side panel (right) ─────────────────────
-    LEFT_W  = 4.1 * inch
-    RIGHT_W = PAGE_W - LEFT_W - 0.2 * inch
+    TABLE_GAP = 0.3 * inch          # visual gap between the two tables
+    LEFT_W    = 4.0 * inch
+    RIGHT_W   = PAGE_W - LEFT_W - TABLE_GAP
 
-    # Left: enrollment summary
-    summary_data = [
-        ["Enrollment Status",  "No. of Students"],
-        ["Total Registrants",  str(total_count)],
-        ["Approved",           str(approved_count)],
-        ["Pending Review",     str(pending_count)],
-        ["Denied",             str(denied_count)],
-        ["Fully Enrolled",     str(enrolled_count)],
-    ]
-    left_table = Table(summary_data, colWidths=[LEFT_W - 1.2*inch, 1.2*inch])
-    left_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
-        ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
-        ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, 0),  9),
-        ("ALIGN",         (0, 0), (-1, 0),  "LEFT"),
-        ("LEFTPADDING",   (0, 0), (-1, 0),  8),
-        ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
-        ("FONTNAME",      (0, 5), (-1, 5),  "Helvetica-Bold"),
-        ("TEXTCOLOR",     (0, 5), (-1, 5),  HEADER_BG),
-        ("BACKGROUND",    (0, 1), (-1, 1),  colors.white),
-        ("BACKGROUND",    (0, 2), (-1, 2),  ROW_ALT),
-        ("BACKGROUND",    (0, 3), (-1, 3),  colors.white),
-        ("BACKGROUND",    (0, 4), (-1, 4),  ROW_ALT),
-        ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
-        ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE",      (0, 1), (-1, -1), 9),
-        ("ALIGN",         (1, 0), (1, -1),  "CENTER"),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING",   (0, 1), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-    ]))
+    # Shared row-height spec so both tables are always the same height
+    HEADER_H = 22   # pts — header row
+    ROW_H    = 20   # pts — data rows
+    TABLE_ROW_HEIGHTS = [HEADER_H] + [ROW_H] * 6   # 1 header + 6 data = 7 rows
 
-    # Right: sex, payment status, enrollment rate
-    enroll_rate = (
-        f"{round(enrolled_count / approved_count * 100)}%"
-        if approved_count else "N/A"
-    )
+    def pct(n, d):
+        """Return n/d as a rounded percentage string, or '—' when d=0."""
+        return f"{round(n / d * 100)}%" if d else "—"
+
+    not_yet_enrolled = max(0, approved_count - enrolled_count)
     male_count   = (by_sex or {}).get("Male", 0)
     female_count = (by_sex or {}).get("Female", 0)
     pay_verified = (by_payment or {}).get("Verified", 0)
     pay_pending  = (by_payment or {}).get("Pending", 0)
 
-    side_data = [
-        ["Student Demographics",        ""],
-        ["Male Students",               str(male_count)],
-        ["Female Students",             str(female_count)],
-        ["Payment Verified (Paid)",     str(pay_verified)],
-        ["Payment Pending (Unverified)", str(pay_pending)],
-        ["Enrollment Rate\n(Enrolled ÷ Approved)", enroll_rate],
+    # ── Left: Enrollment Status ────────────────────────────────────────
+    # Rows 1–4: % of Total applicants; rows 5–6: % of Approved
+    summary_data = [
+        ["Enrollment Status",  "Count",               "% of Total"],
+        ["Total Registrants",  str(total_count),      "100%"],
+        ["Approved",           str(approved_count),   pct(approved_count, total_count)],
+        ["Pending Review",     str(pending_count),    pct(pending_count,  total_count)],
+        ["Denied",             str(denied_count),     pct(denied_count,   total_count)],
+        ["Fully Enrolled",     str(enrolled_count),   pct(enrolled_count,     approved_count)],
+        ["Not Yet Enrolled",   str(not_yet_enrolled), pct(not_yet_enrolled,   approved_count)],
     ]
-    right_table = Table(side_data, colWidths=[RIGHT_W - 0.85*inch, 0.85*inch])
+    # col widths must sum to LEFT_W
+    left_table = Table(
+        summary_data,
+        colWidths=[2.15*inch, 0.85*inch, 1.0*inch],
+        rowHeights=TABLE_ROW_HEIGHTS,
+    )
+    left_table.setStyle(TableStyle([
+        # Header
+        ("SPAN",          (0, 0), (-1, 0)),
+        ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
+        ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
+        ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 0), (-1, 0),  9),
+        ("ALIGN",         (0, 0), (-1, 0),  "CENTER"),
+        # Alternating row colours
+        ("BACKGROUND",    (0, 1), (-1, 1),  colors.white),
+        ("BACKGROUND",    (0, 2), (-1, 2),  ROW_ALT),
+        ("BACKGROUND",    (0, 3), (-1, 3),  colors.white),
+        ("BACKGROUND",    (0, 4), (-1, 4),  ROW_ALT),
+        # Fully Enrolled — green highlight
+        ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
+        ("FONTNAME",      (0, 5), (-1, 5),  "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0, 5), (-1, 5),  HEADER_BG),
+        # Not Yet Enrolled — soft amber
+        ("BACKGROUND",    (0, 6), (-1, 6),  colors.HexColor("#fffbeb")),
+        # Note: rows 5-6 % column reflects % of Approved, not Total
+        ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
+        ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE",      (0, 1), (-1, -1), 8.5),
+        ("ALIGN",         (1, 0), (-1, -1), "CENTER"),
+        ("ALIGN",         (0, 1), (0, -1),  "LEFT"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 7),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+
+    # ── Right: Student Demographics ────────────────────────────────────
+    enroll_rate  = pct(enrolled_count, approved_count)
+    approval_rate = pct(approved_count, total_count)
+
+    side_data = [
+        ["Student Demographics",  "Count",             "%"],
+        ["Male Students",          str(male_count),    pct(male_count,   total_count)],
+        ["Female Students",        str(female_count),  pct(female_count, total_count)],
+        ["Payment Verified",       str(pay_verified),  pct(pay_verified, approved_count)],
+        ["Payment Pending",        str(pay_pending),   pct(pay_pending,  approved_count)],
+        ["Enrollment Rate",        enroll_rate,        "of Approved"],
+        ["Approval Rate",          approval_rate,      "of Total"],
+    ]
+    # col widths must sum to RIGHT_W
+    right_table = Table(
+        side_data,
+        colWidths=[1.4*inch, 0.7*inch, 0.6*inch],
+        rowHeights=TABLE_ROW_HEIGHTS,
+    )
     right_table.setStyle(TableStyle([
-        # Header spans both cols
-        ("SPAN",          (0, 0), (1, 0)),
+        # Header spans all cols
+        ("SPAN",          (0, 0), (-1, 0)),
         ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_BG),
         ("TEXTCOLOR",     (0, 0), (-1, 0),  HEADER_FG),
         ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
@@ -485,18 +515,19 @@ def build_enrollment_report(
         ("BACKGROUND",    (0, 1), (-1, 2),  colors.HexColor("#eff6ff")),
         # Payment rows — amber tint
         ("BACKGROUND",    (0, 3), (-1, 4),  colors.HexColor("#fffbeb")),
-        # Enrollment rate row — green highlight
-        ("BACKGROUND",    (0, 5), (-1, 5),  colors.HexColor("#d1fae5")),
-        ("FONTNAME",      (0, 5), (-1, 5),  "Helvetica-Bold"),
-        ("TEXTCOLOR",     (0, 5), (-1, 5),  HEADER_BG),
+        # Rate rows — green highlight
+        ("BACKGROUND",    (0, 5), (-1, 6),  colors.HexColor("#d1fae5")),
+        ("FONTNAME",      (0, 5), (-1, 6),  "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0, 5), (-1, 6),  HEADER_BG),
         ("GRID",          (0, 0), (-1, -1), 0.5, BORDER),
         ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE",      (0, 1), (-1, -1), 8.5),
-        ("ALIGN",         (1, 1), (1, -1),  "CENTER"),
+        ("FONTSIZE",      (0, 1), (-1, -1), 8),
+        ("ALIGN",         (1, 0), (-1, -1), "CENTER"),
+        ("ALIGN",         (0, 1), (0, -1),  "LEFT"),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 7),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
 
     side_by_side = Table(
@@ -504,12 +535,12 @@ def build_enrollment_report(
         colWidths=[LEFT_W, RIGHT_W],
     )
     side_by_side.setStyle(TableStyle([
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING",   (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING",(0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (0, -1),  0.2*inch),
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (0, -1),  TABLE_GAP),
     ]))
     story.append(side_by_side)
 
