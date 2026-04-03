@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Eye, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Trash2, Search, ChevronLeft, ChevronRight, FileText, Download, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getAdminStudents, deleteStudent } from '../../services/api';
+import { getAdminStudents, deleteStudent, generateEnrollmentReport } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
 export default function AllStudents() {
@@ -19,6 +20,18 @@ export default function AllStudents() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const perPage = 10;
+
+  // Report modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportSchoolYear, setReportSchoolYear] = useState('');
+  const [reportSemester, setReportSemester] = useState('');
+  const [reportGenerating, setReportGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewFilename, setPreviewFilename] = useState('enrollment_report.pdf');
+
+  useEffect(() => {
+    return () => { if (previewUrl) window.URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
 
   const fetchData = () => {
     setLoading(true);
@@ -61,11 +74,82 @@ export default function AllStudents() {
 
   const totalPages = Math.ceil(total / perPage);
 
+  const fetchReportBlob = async () => {
+    const params = {};
+    if (reportSchoolYear.trim()) params.school_year = reportSchoolYear.trim();
+    if (reportSemester) params.semester = reportSemester;
+    const res = await generateEnrollmentReport(params);
+    const disposition = res.headers['content-disposition'] || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'enrollment_report.pdf';
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    return { url, filename };
+  };
+
+  const handlePreview = async () => {
+    setReportGenerating(true);
+    try {
+      if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+      const { url, filename } = await fetchReportBlob();
+      setPreviewUrl(url);
+      setPreviewFilename(filename);
+      setReportModalOpen(false);
+    } catch {
+      toast.error('Failed to generate preview. Please try again.');
+    } finally {
+      setReportGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setReportGenerating(true);
+    try {
+      const { url, filename } = await fetchReportBlob();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Report downloaded!');
+      setReportModalOpen(false);
+    } catch {
+      toast.error('Failed to download report. Please try again.');
+    } finally {
+      setReportGenerating(false);
+    }
+  };
+
+  const handleDownloadFromPreview = () => {
+    if (!previewUrl) return;
+    const link = document.createElement('a');
+    link.href = previewUrl;
+    link.download = previewFilename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const closePreview = () => {
+    if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+  };
+
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">All Students</h1>
-        <p className="text-gray-500">{total} total student(s)</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">All Students</h1>
+          <p className="text-gray-500">{total} total student(s)</p>
+        </div>
+        <button
+          onClick={() => setReportModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shrink-0"
+        >
+          <FileText size={16} />
+          Generate Report
+        </button>
       </div>
 
       {/* Filters */}
@@ -179,6 +263,149 @@ export default function AllStudents() {
         variant="danger"
         loading={deleting}
       />
+
+      {/* PDF Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-6 py-3 bg-gray-900 text-white shrink-0">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-emerald-400" />
+              <span className="text-sm font-medium">{previewFilename}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDownloadFromPreview}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-lg transition"
+              >
+                <Download size={15} />
+                Download
+              </button>
+              <button
+                onClick={closePreview}
+                className="p-1.5 hover:bg-gray-700 rounded-lg transition"
+                title="Close preview"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+          <iframe
+            src={previewUrl}
+            className="flex-1 w-full border-0"
+            title="PDF Preview"
+          />
+        </div>
+      )}
+
+      {/* Generate Report Modal */}
+      {reportModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm animate-backdrop-enter">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-enter">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <FileText size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Generate Enrollment Report</h2>
+                    <p className="text-xs text-emerald-100">Export student data as PDF</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReportModalOpen(false)}
+                  disabled={reportGenerating}
+                  className="p-1.5 hover:bg-white/20 rounded-lg transition disabled:opacity-50 text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <p className="text-sm text-gray-500">
+                  Leave filters blank to include all records across all school years and semesters.
+                </p>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    School Year <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2025-2026"
+                    value={reportSchoolYear}
+                    onChange={(e) => setReportSchoolYear(e.target.value)}
+                    disabled={reportGenerating}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Semester <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <select
+                    value={reportSemester}
+                    onChange={(e) => setReportSemester(e.target.value)}
+                    disabled={reportGenerating}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50 disabled:opacity-60"
+                  >
+                    <option value="">All Semesters</option>
+                    <option value="1st Semester">1st Semester</option>
+                    <option value="2nd Semester">2nd Semester</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+                <button
+                  onClick={() => setReportModalOpen(false)}
+                  disabled={reportGenerating}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePreview}
+                  disabled={reportGenerating}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {reportGenerating ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Eye size={16} />
+                      Preview
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  disabled={reportGenerating}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {reportGenerating ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={16} />
+                      Download PDF
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </DashboardLayout>
   );
 }
