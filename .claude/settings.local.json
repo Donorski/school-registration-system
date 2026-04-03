@@ -57,7 +57,14 @@
       "Bash(cd /c/Users/\"jonel angelo donor\"/OneDrive/Desktop/school-registration-system/backend && ./venv/Scripts/alembic current 2>&1)",
       "Bash(cd:*)",
       "Bash(claude doctor:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(node -e \"const { regions, provinces, cities } = require\\(''philippines''\\); console.log\\(''Regions:'', regions.slice\\(0,2\\)\\); console.log\\(''Provinces:'', provinces.filter\\(p=>p.region===''V''\\).slice\\(0,3\\)\\); console.log\\(''Cities sample:'', cities.filter\\(c=>c.province===''sorsogon''\\).slice\\(0,3\\)\\);\")",
+      "Bash(node -e \"const { provinces, cities } = require\\(''philippines''\\); const sor = provinces.find\\(p=>p.name===''Sorsogon''\\); console.log\\(''Sorsogon province key:'', sor\\); console.log\\(''Cities keys sample:'', cities.slice\\(0,2\\)\\); const sorCities = cities.filter\\(c=>c.province===sor.key\\); console.log\\(''Sorsogon cities:'', sorCities.slice\\(0,5\\)\\);\")",
+      "Bash(node -e \"const { regions } = require\\(''philippines''\\); const r5 = regions.find\\(r=>r.key===''V''\\); console.log\\(''Region V:'', r5\\); console.log\\(''All regions:'', regions\\);\")",
+      "Bash(npm run:*)",
+      "Bash(lsblk -d -o NAME,SIZE,ROTA,TRAN,MODEL)",
+      "Bash(sudo lshw:*)",
+      "Bash(vercel --version)"
     ]
   }
 }

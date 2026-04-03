@@ -9,7 +9,7 @@ import ComingSoon from './pages/ComingSoon';
 // ─── COMING SOON TOGGLE ───────────────────────────────────────────────────────
 // Set to `true` to show the Coming Soon page to all visitors.
 // Set to `false` to open the full application.
-const COMING_SOON = true;
+const COMING_SOON = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Login = lazy(() => import('./pages/Login'));
@@ -25,7 +25,9 @@ const Settings = lazy(() => import('./pages/admin/Settings'));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
 const Announcements = lazy(() => import('./pages/admin/Announcements'));
 const Reports = lazy(() => import('./pages/admin/Reports'));
-const RegistrarDashboard = lazy(() => import('./pages/registrar/RegistrarDashboard'));
+const RegistrarDashboard = lazy(
+  () => import('./pages/registrar/RegistrarDashboard'),
+);
 const Subjects = lazy(() => import('./pages/registrar/Subjects'));
 const AssignSubjects = lazy(() => import('./pages/registrar/AssignSubjects'));
 const PaymentReview = lazy(() => import('./pages/registrar/PaymentReview'));
@@ -38,48 +40,167 @@ export default function App() {
 
   const getHomeRedirect = () => {
     if (!user) return '/login';
-    const routes = { student: '/student/dashboard', admin: '/admin/dashboard', registrar: '/registrar/dashboard' };
+    const routes = {
+      student: '/student/dashboard',
+      admin: '/admin/dashboard',
+      registrar: '/registrar/dashboard',
+    };
     return routes[user.role] || '/login';
   };
 
   return (
     <>
-    {COMING_SOON && <ComingSoon />}
-    <PageTransition>
-    <Suspense fallback={<LoadingSpinner size="lg" />}>
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      {COMING_SOON && <ComingSoon />}
+      <PageTransition>
+        <Suspense fallback={<LoadingSpinner size="lg" />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-      {/* Student */}
-      <Route path="/student/dashboard" element={<PrivateRoute roles={['student']}><StudentDashboard /></PrivateRoute>} />
-      <Route path="/student/profile" element={<PrivateRoute roles={['student']}><StudentProfile /></PrivateRoute>} />
-      <Route path="/student/settings" element={<PrivateRoute roles={['student']}><StudentSettings /></PrivateRoute>} />
+            {/* Student */}
+            <Route
+              path="/student/dashboard"
+              element={
+                <PrivateRoute roles={['student']}>
+                  <StudentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/student/profile"
+              element={
+                <PrivateRoute roles={['student']}>
+                  <StudentProfile />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/student/settings"
+              element={
+                <PrivateRoute roles={['student']}>
+                  <StudentSettings />
+                </PrivateRoute>
+              }
+            />
 
-      {/* Admin */}
-      <Route path="/admin/dashboard" element={<PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>} />
-      <Route path="/admin/pending" element={<PrivateRoute roles={['admin']}><PendingStudents /></PrivateRoute>} />
-      <Route path="/admin/students" element={<PrivateRoute roles={['admin']}><AllStudents /></PrivateRoute>} />
-      <Route path="/admin/students/:id" element={<PrivateRoute roles={['admin']}><StudentDetails /></PrivateRoute>} />
-      <Route path="/admin/audit-logs" element={<PrivateRoute roles={['admin']}><AuditLogs /></PrivateRoute>} />
-      <Route path="/admin/announcements" element={<PrivateRoute roles={['admin']}><Announcements /></PrivateRoute>} />
-      <Route path="/admin/reports" element={<PrivateRoute roles={['admin']}><Reports /></PrivateRoute>} />
-      <Route path="/admin/settings" element={<PrivateRoute roles={['admin']}><Settings /></PrivateRoute>} />
+            {/* Admin */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <AdminDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/pending"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <PendingStudents />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/students"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <AllStudents />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/students/:id"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <StudentDetails />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/audit-logs"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <AuditLogs />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/announcements"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <Announcements />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <Reports />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <Settings />
+                </PrivateRoute>
+              }
+            />
 
-      {/* Registrar */}
-      <Route path="/registrar/dashboard" element={<PrivateRoute roles={['registrar']}><RegistrarDashboard /></PrivateRoute>} />
-      <Route path="/registrar/subjects" element={<PrivateRoute roles={['registrar']}><Subjects /></PrivateRoute>} />
-      <Route path="/registrar/payments" element={<PrivateRoute roles={['registrar']}><PaymentReview /></PrivateRoute>} />
-      <Route path="/registrar/assign" element={<PrivateRoute roles={['registrar']}><AssignSubjects /></PrivateRoute>} />
+            {/* Registrar */}
+            <Route
+              path="/registrar/dashboard"
+              element={
+                <PrivateRoute roles={['registrar']}>
+                  <RegistrarDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/registrar/subjects"
+              element={
+                <PrivateRoute roles={['registrar']}>
+                  <Subjects />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/registrar/payments"
+              element={
+                <PrivateRoute roles={['registrar']}>
+                  <PaymentReview />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/registrar/assign"
+              element={
+                <PrivateRoute roles={['registrar']}>
+                  <AssignSubjects />
+                </PrivateRoute>
+              }
+            />
 
-      {/* Notifications — shared across all roles */}
-      <Route path="/notifications" element={<PrivateRoute roles={['student', 'admin', 'registrar']}><Notifications /></PrivateRoute>} />
+            {/* Notifications — shared across all roles */}
+            <Route
+              path="/notifications"
+              element={
+                <PrivateRoute roles={['student', 'admin', 'registrar']}>
+                  <Notifications />
+                </PrivateRoute>
+              }
+            />
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to={getHomeRedirect()} replace />} />
-    </Routes>
-    </Suspense>
-    </PageTransition>
+            {/* Catch all */}
+            <Route
+              path="*"
+              element={<Navigate to={getHomeRedirect()} replace />}
+            />
+          </Routes>
+        </Suspense>
+      </PageTransition>
     </>
   );
 }
