@@ -19,6 +19,7 @@ class Subject(Base):
     strand: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     grade_level: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     semester: Mapped[str] = mapped_column(String(20), nullable=False, index=True, default="1st Semester")
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     max_students: Mapped[int] = mapped_column(Integer, default=40, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

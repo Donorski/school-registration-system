@@ -12,6 +12,7 @@ class SubjectCreate(BaseModel):
     strand: str
     grade_level: str
     semester: str = "1st Semester"
+    category: str | None = None
     max_students: int = 40
 
     @field_validator("max_students")
@@ -30,6 +31,7 @@ class SubjectUpdate(BaseModel):
     strand: str | None = None
     grade_level: str | None = None
     semester: str | None = None
+    category: str | None = None
     max_students: int | None = None
 
 
@@ -42,6 +44,7 @@ class SubjectResponse(BaseModel):
     strand: str
     grade_level: str
     semester: str = "1st Semester"
+    category: str | None = None
     max_students: int
     enrolled_count: int = 0
     created_at: datetime

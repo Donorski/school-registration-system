@@ -44,7 +44,7 @@ export default function AssignSubjects() {
 
   // Class list
   const [showClassListPicker, setShowClassListPicker] = useState(false);
-  const [clStrand, setClStrand] = useState('STEM');
+  const [clStrand, setClStrand] = useState('ABM');
   const [clGrade, setClGrade] = useState('Grade 11');
   const [clSemester, setClSemester] = useState('');
   const [classListStudents, setClassListStudents] = useState([]);
@@ -241,16 +241,13 @@ export default function AssignSubjects() {
               className="flex-1 border border-gray-300 rounded-lg text-xs px-2 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-white"
             >
               <option value="">All Strands</option>
-              <option value="STEM">STEM</option>
               <option value="ABM">ABM</option>
               <option value="HUMSS">HUMSS</option>
               <option value="GAS">GAS</option>
-              <option value="TVL-ICT">TVL-ICT</option>
-              <option value="TVL-HE">TVL-HE</option>
-              <option value="TVL-IA">TVL-IA</option>
-              <option value="TVL-AFA">TVL-AFA</option>
-              <option value="SPORTS">Sports</option>
-              <option value="ARTS">Arts</option>
+              <option value="CSS">CSS</option>
+              <option value="EIM">EIM</option>
+              <option value="EPAS">EPAS</option>
+              <option value="PROG">PROG</option>
             </select>
             <select
               value={gradeFilter}
@@ -658,7 +655,7 @@ export default function AssignSubjects() {
                   onChange={(e) => setClStrand(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {['STEM','ABM','HUMSS','GAS','TVL-ICT','TVL-HE','TVL-IA','TVL-AFA','SPORTS','ARTS'].map(s => (
+                  {['ABM','HUMSS','GAS','CSS','EIM','EPAS','PROG'].map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>

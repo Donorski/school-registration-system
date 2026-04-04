@@ -38,7 +38,7 @@ export default function Subjects() {
 
   const openAdd = () => {
     setEditing(null);
-    reset({ subject_code: '', subject_name: '', schedule: '', strand: 'STEM', grade_level: 'Grade 11', semester: '1st Semester', max_students: 40 });
+    reset({ subject_code: '', subject_name: '', schedule: '', strand: 'ABM', grade_level: 'Grade 11', semester: '1st Semester', max_students: 40 });
     setModalOpen(true);
   };
 
@@ -107,16 +107,13 @@ export default function Subjects() {
       <div className="flex gap-3 mb-4 flex-wrap">
         <select value={strandFilter} onChange={(e) => setStrandFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
           <option value="">All Strands</option>
-          <option value="STEM">STEM</option>
           <option value="ABM">ABM</option>
           <option value="HUMSS">HUMSS</option>
           <option value="GAS">GAS</option>
-          <option value="TVL-ICT">TVL-ICT</option>
-          <option value="TVL-HE">TVL-HE</option>
-          <option value="TVL-IA">TVL-IA</option>
-          <option value="TVL-AFA">TVL-AFA</option>
-          <option value="SPORTS">Sports</option>
-          <option value="ARTS">Arts</option>
+          <option value="CSS">CSS</option>
+          <option value="EIM">EIM</option>
+          <option value="EPAS">EPAS</option>
+          <option value="PROG">PROG</option>
         </select>
         <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
           <option value="">All Grades</option>
@@ -179,7 +176,7 @@ export default function Subjects() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Subject Code</label>
-            <input {...register('subject_code', { required: 'Required' })} className={inputClass} placeholder="e.g. STEM11-GC" />
+            <input {...register('subject_code', { required: 'Required' })} className={inputClass} placeholder="e.g. ABM11S1CO01" />
             {errors.subject_code && <p className="text-red-500 text-xs mt-1">{errors.subject_code.message}</p>}
           </div>
           <div>
@@ -199,16 +196,13 @@ export default function Subjects() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Strand</label>
               <select {...register('strand')} className={inputClass}>
-                <option value="STEM">STEM</option>
                 <option value="ABM">ABM</option>
                 <option value="HUMSS">HUMSS</option>
                 <option value="GAS">GAS</option>
-                <option value="TVL-ICT">TVL-ICT</option>
-                <option value="TVL-HE">TVL-HE</option>
-                <option value="TVL-IA">TVL-IA</option>
-                <option value="TVL-AFA">TVL-AFA</option>
-                <option value="SPORTS">Sports</option>
-                <option value="ARTS">Arts</option>
+                <option value="CSS">CSS</option>
+                <option value="EIM">EIM</option>
+                <option value="EPAS">EPAS</option>
+                <option value="PROG">PROG</option>
               </select>
             </div>
             <div>

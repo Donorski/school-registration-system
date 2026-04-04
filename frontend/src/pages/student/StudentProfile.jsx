@@ -676,16 +676,13 @@ export default function StudentProfile() {
               <label className={labelClass}>Strand <span className="text-red-500">*</span></label>
               <select {...register('strand')} disabled={isLocked} className={selectClass}>
                 <option value="">Select</option>
-                <option value="STEM">STEM</option>
                 <option value="ABM">ABM</option>
                 <option value="HUMSS">HUMSS</option>
                 <option value="GAS">GAS</option>
-                <option value="TVL-ICT">TVL-ICT</option>
-                <option value="TVL-HE">TVL-HE</option>
-                <option value="TVL-IA">TVL-IA</option>
-                <option value="TVL-AFA">TVL-AFA</option>
-                <option value="SPORTS">Sports Track</option>
-                <option value="ARTS">Arts and Design</option>
+                <option value="CSS">CSS</option>
+                <option value="EIM">EIM</option>
+                <option value="EPAS">EPAS</option>
+                <option value="PROG">PROG</option>
               </select>
             </div>
             <div>
