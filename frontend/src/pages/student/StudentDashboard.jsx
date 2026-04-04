@@ -1,13 +1,120 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
-import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements } from '../../services/api';
+import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
+
+function WelcomeModal({ onComplete }) {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [saving, setSaving] = useState(false);
+
+  const onSubmit = async (data) => {
+    setSaving(true);
+    try {
+      await updateMyProfile(data);
+      toast.success('Welcome! Your info has been saved.');
+      onComplete(data);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none';
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-enter p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-modal-enter overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-6 text-center">
+          <div className="flex items-center justify-center mb-3">
+            <div className="bg-white/20 p-3 rounded-full">
+              <Sparkles size={28} className="text-white" />
+            </div>
+          </div>
+          <h2 className="text-xl font-bold text-white">Welcome to DBTC!</h2>
+          <p className="text-emerald-100 text-sm mt-1">Let's set up your profile to get started</p>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-500 text-center">
+            Enter your basic info below — this will pre-fill your enrollment form so you don't have to type it again.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>First Name <span className="text-red-500">*</span></label>
+              <input
+                {...register('first_name', { required: 'Required' })}
+                className={inputClass}
+                placeholder="e.g. Juan"
+                autoFocus
+              />
+              {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>}
+            </div>
+            <div>
+              <label className={labelClass}>Last Name <span className="text-red-500">*</span></label>
+              <input
+                {...register('last_name', { required: 'Required' })}
+                className={inputClass}
+                placeholder="e.g. Dela Cruz"
+              />
+              {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Middle Name <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
+            <input
+              {...register('middle_name')}
+              className={inputClass}
+              placeholder="e.g. Santos"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Birthday <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                {...register('birthday', { required: 'Required' })}
+                className={inputClass}
+              />
+              {errors.birthday && <p className="text-red-500 text-xs mt-1">{errors.birthday.message}</p>}
+            </div>
+            <div>
+              <label className={labelClass}>Sex <span className="text-red-500">*</span></label>
+              <select {...register('sex', { required: 'Required' })} className={inputClass}>
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </select>
+              {errors.sex && <p className="text-red-500 text-xs mt-1">{errors.sex.message}</p>}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition disabled:opacity-50 mt-2"
+          >
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+            {saving ? 'Saving...' : 'Save & Continue'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // ── Announcement Carousel ────────────────────────────────────────────────────
 function AnnouncementCarousel({ announcements }) {
@@ -365,6 +472,7 @@ export default function StudentDashboard() {
   const [uploading, setUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [expandedRecord, setExpandedRecord] = useState(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const receiptInputRef = useRef(null);
   const printRef = useRef(null);
 
@@ -392,6 +500,7 @@ export default function StudentDashboard() {
         setHistory(historyRes.data);
         setCalendar(calendarRes.data);
         setAnnouncements(annRes.data);
+        if (!profileRes.data?.first_name) setShowWelcomeModal(true);
       } catch (err) {
         console.error('Dashboard load error:', err);
         setError(getErrorMessage(err));
@@ -451,6 +560,15 @@ export default function StudentDashboard() {
 
   return (
     <DashboardLayout>
+      {showWelcomeModal && (
+        <WelcomeModal
+          onComplete={(data) => {
+            setProfile((prev) => ({ ...prev, ...data }));
+            setShowWelcomeModal(false);
+          }}
+        />
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
           Welcome, {profile?.first_name || 'Student'}!
