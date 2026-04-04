@@ -37,6 +37,7 @@ export default function AllStudents() {
     setLoading(true);
     const params = { page, per_page: perPage };
     if (statusFilter) params.status = statusFilter;
+    if (search.trim()) params.search = search.trim();
     getAdminStudents(params)
       .then((res) => {
         setStudents(res.data.students);
@@ -45,7 +46,7 @@ export default function AllStudents() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, [page, statusFilter]);
+  useEffect(() => { fetchData(); }, [page, statusFilter, search]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -61,16 +62,6 @@ export default function AllStudents() {
       setDeleting(false);
     }
   };
-
-  const filtered = students.filter((s) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      (s.first_name?.toLowerCase() || '').includes(q) ||
-      (s.last_name?.toLowerCase() || '').includes(q) ||
-      (s.student_number?.toLowerCase() || '').includes(q)
-    );
-  });
 
   const totalPages = Math.ceil(total / perPage);
 
@@ -159,7 +150,7 @@ export default function AllStudents() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by name or student number..."
             className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
           />
@@ -179,7 +170,7 @@ export default function AllStudents() {
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         {loading ? (
           <LoadingSpinner />
-        ) : filtered.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No students found</div>
         ) : (
           <>
@@ -197,7 +188,7 @@ export default function AllStudents() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((s) => (
+                  {students.map((s) => (
                     <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs">{s.student_number || <span className="text-gray-400 italic">Pending</span>}</td>
                       <td className="px-4 py-3">
