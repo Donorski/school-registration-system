@@ -55,6 +55,13 @@ export function AuthProvider({ children }) {
     setAvatar(null);
   }, []);
 
+  const refreshUser = useCallback(() => {
+    return getMe().then((res) => {
+      setUser(res.data);
+      localStorage.setItem('user', JSON.stringify(res.data));
+    });
+  }, []);
+
   const updateAvatar = useCallback((base64DataUrl) => {
     setAvatar((prev) => {
       // Use functional update to access latest user id via closure over setUser
@@ -73,7 +80,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginUser, logout, avatar, updateAvatar }}>
+    <AuthContext.Provider value={{ user, loading, loginUser, logout, avatar, updateAvatar, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

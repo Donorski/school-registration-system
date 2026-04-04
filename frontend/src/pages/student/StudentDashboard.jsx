@@ -10,8 +10,10 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
 import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
+import { useAuth } from '../../hooks/useAuth';
 
 function WelcomeModal({ onComplete }) {
+  const { refreshUser } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm({
     mode: 'onChange',
     defaultValues: {
@@ -28,6 +30,7 @@ function WelcomeModal({ onComplete }) {
     setSaving(true);
     try {
       await updateMyProfile(data);
+      await refreshUser();
       toast.success('Welcome! Your info has been saved.');
       onComplete(data);
     } catch (err) {
