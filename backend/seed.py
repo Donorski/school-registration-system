@@ -52,7 +52,7 @@ def seed():
                 "last_school_year_completed": "2023-2024",
                 "last_school_attended": "Manila Science High School",
                 "school_type": SchoolType.PUBLIC,
-                "strand": "STEM",
+                "strand": "PROG",
                 "school_to_enroll_in": "Philippine Science High School",
                 "school_address": "Diliman, Quezon City",
                 "psa_birth_certificate_no": "PSA-2008-12345",

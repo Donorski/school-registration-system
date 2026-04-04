@@ -67,16 +67,13 @@ PROVINCES_DATA: dict[str, dict[str, list[str]]] = {
 }
 
 STRANDS = [
-    {"code": "STEM", "name": "Science, Technology, Engineering, and Mathematics"},
-    {"code": "ABM", "name": "Accountancy, Business, and Management"},
+    {"code": "ABM", "name": "Accountancy, Business and Management"},
     {"code": "HUMSS", "name": "Humanities and Social Sciences"},
     {"code": "GAS", "name": "General Academic Strand"},
-    {"code": "TVL-ICT", "name": "Technical-Vocational-Livelihood - ICT"},
-    {"code": "TVL-HE", "name": "Technical-Vocational-Livelihood - Home Economics"},
-    {"code": "TVL-IA", "name": "Technical-Vocational-Livelihood - Industrial Arts"},
-    {"code": "TVL-AFA", "name": "Technical-Vocational-Livelihood - Agri-Fishery Arts"},
-    {"code": "SPORTS", "name": "Sports Track"},
-    {"code": "ARTS", "name": "Arts and Design Track"},
+    {"code": "CSS", "name": "Computer Systems Servicing NC II (TVL)"},
+    {"code": "EIM", "name": "Electrical Installation and Maintenance NC II (TVL)"},
+    {"code": "EPAS", "name": "Electronic Products Assembly and Servicing NC II (TVL)"},
+    {"code": "PROG", "name": "Programming (TVL)"},
 ]
 
 
