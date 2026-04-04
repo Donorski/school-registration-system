@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
@@ -560,13 +561,14 @@ export default function StudentDashboard() {
 
   return (
     <DashboardLayout>
-      {showWelcomeModal && (
+      {showWelcomeModal && createPortal(
         <WelcomeModal
           onComplete={(data) => {
             setProfile((prev) => ({ ...prev, ...data }));
             setShowWelcomeModal(false);
           }}
-        />
+        />,
+        document.body
       )}
 
       <div className="mb-6">
