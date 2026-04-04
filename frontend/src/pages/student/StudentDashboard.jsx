@@ -12,7 +12,16 @@ import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHisto
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 
 function WelcomeModal({ onComplete }) {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    mode: 'onChange',
+    defaultValues: {
+      first_name: '',
+      last_name: '',
+      middle_name: '',
+      birthday: '',
+      sex: '',
+    },
+  });
   const [saving, setSaving] = useState(false);
 
   const onSubmit = async (data) => {
@@ -28,7 +37,10 @@ function WelcomeModal({ onComplete }) {
     }
   };
 
-  const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none';
+  const inputClass = (field) =>
+    `w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none ${
+      errors[field] ? 'border-red-400 bg-red-50' : 'border-gray-300'
+    }`;
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
   return (
@@ -53,8 +65,11 @@ function WelcomeModal({ onComplete }) {
             <div>
               <label className={labelClass}>First Name <span className="text-red-500">*</span></label>
               <input
-                {...register('first_name', { required: 'Required' })}
-                className={inputClass}
+                {...register('first_name', {
+                  required: 'First name is required',
+                  minLength: { value: 2, message: 'At least 2 characters' },
+                })}
+                className={inputClass('first_name')}
                 placeholder="e.g. Juan"
                 autoFocus
               />
@@ -63,8 +78,11 @@ function WelcomeModal({ onComplete }) {
             <div>
               <label className={labelClass}>Last Name <span className="text-red-500">*</span></label>
               <input
-                {...register('last_name', { required: 'Required' })}
-                className={inputClass}
+                {...register('last_name', {
+                  required: 'Last name is required',
+                  minLength: { value: 2, message: 'At least 2 characters' },
+                })}
+                className={inputClass('last_name')}
                 placeholder="e.g. Dela Cruz"
               />
               {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
@@ -75,7 +93,7 @@ function WelcomeModal({ onComplete }) {
             <label className={labelClass}>Middle Name <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
             <input
               {...register('middle_name')}
-              className={inputClass}
+              className={inputClass('middle_name')}
               placeholder="e.g. Santos"
             />
           </div>
@@ -85,17 +103,34 @@ function WelcomeModal({ onComplete }) {
               <label className={labelClass}>Birthday <span className="text-red-500">*</span></label>
               <input
                 type="date"
-                {...register('birthday', { required: 'Required' })}
-                className={inputClass}
+                {...register('birthday', {
+                  required: 'Birthday is required',
+                  validate: (v) => {
+                    const d = new Date(v);
+                    const now = new Date();
+                    if (isNaN(d)) return 'Invalid date';
+                    if (d > now) return 'Birthday cannot be in the future';
+                    const age = now.getFullYear() - d.getFullYear();
+                    if (age > 100) return 'Invalid birthday';
+                    return true;
+                  },
+                })}
+                className={inputClass('birthday')}
               />
               {errors.birthday && <p className="text-red-500 text-xs mt-1">{errors.birthday.message}</p>}
             </div>
             <div>
               <label className={labelClass}>Sex <span className="text-red-500">*</span></label>
-              <select {...register('sex', { required: 'Required' })} className={inputClass}>
+              <select
+                {...register('sex', {
+                  required: 'Please select your sex',
+                  validate: (v) => (v === 'Male' || v === 'Female') || 'Please select your sex',
+                })}
+                className={inputClass('sex')}
+              >
                 <option value="">Select</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
               </select>
               {errors.sex && <p className="text-red-500 text-xs mt-1">{errors.sex.message}</p>}
             </div>
