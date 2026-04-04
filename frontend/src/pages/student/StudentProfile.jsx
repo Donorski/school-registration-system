@@ -200,7 +200,6 @@ export default function StudentProfile() {
       } else if (step === 2) {
         const missing = [];
         if (!values.grade_level_to_enroll) missing.push('Grade Level to Enroll');
-        if (!values.semester) missing.push('Semester');
         if (!values.strand) missing.push('Strand');
         if (!values.lrn) missing.push('LRN');
         if (values.enrollment_type === 'TRANSFEREE' && !values.last_school_attended) missing.push('Last School Attended');
