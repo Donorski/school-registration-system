@@ -2,34 +2,15 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Users, ClipboardList, CheckCircle, XCircle, AlertTriangle, X, FileText, Download, Eye } from 'lucide-react';
-import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer,
-} from 'recharts';
+import ReactApexChart from 'react-apexcharts';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonLoader';
 import { getDashboardStats, generateEnrollmentReport } from '../../services/api';
 import { useCountUp } from '../../hooks/useCountUp';
 
-const STATUS_COLORS = ['#f59e0b', '#22c55e', '#ef4444'];
-const STRAND_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
-const ENROLLMENT_COLORS = ['#10b981', '#f59e0b', '#8b5cf6'];
-
 function toChartData(obj) {
   return Object.entries(obj || {}).map(([name, value]) => ({ name, value }));
-}
-
-function CustomTooltip({ active, payload }) {
-  if (active && payload?.length) {
-    return (
-      <div className="bg-white border border-gray-200 shadow-lg rounded-lg px-3 py-2 text-sm">
-        <p className="font-medium text-gray-800">{payload[0].name}</p>
-        <p className="text-gray-600">{payload[0].value} student{payload[0].value !== 1 ? 's' : ''}</p>
-      </div>
-    );
-  }
-  return null;
 }
 
 function StatCard({ label, value, icon: Icon, iconClass, delay, to }) {
@@ -72,9 +53,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     return () => { if (previewUrl) window.URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
-
-  const renderPieLabel = ({ name, percent }) =>
-    percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : '';
 
   const pendingCount = stats?.pending_students ?? 0;
 
@@ -169,10 +147,11 @@ export default function AdminDashboard() {
       {/* Charts */}
       {!loading && (
         <>
-          {/* Row 1: Both Pie Charts side by side */}
+          {/* Row 1: Donut Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Application Status</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <h2 className="text-base font-semibold text-gray-700 mb-1">Application Status</h2>
+              <p className="text-xs text-gray-400 mb-4">Breakdown of student application states</p>
               {(() => {
                 const statusData = [
                   { name: 'Pending', value: stats?.pending_students || 0 },
@@ -180,65 +159,82 @@ export default function AdminDashboard() {
                   { name: 'Denied', value: stats?.denied_students || 0 },
                 ].filter((d) => d.value > 0);
                 return statusData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        innerRadius={50}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                        isAnimationActive
-                        animationBegin={300}
-                        animationDuration={900}
-                        animationEasing="ease-out"
-                      >
-                        {statusData.map((_, i) => (
-                          <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <ReactApexChart
+                    type="donut"
+                    height={280}
+                    series={statusData.map((d) => d.value)}
+                    options={{
+                      labels: statusData.map((d) => d.name),
+                      colors: ['#f59e0b', '#10b981', '#ef4444'],
+                      chart: { fontFamily: 'inherit', toolbar: { show: false } },
+                      plotOptions: {
+                        pie: {
+                          donut: {
+                            size: '65%',
+                            labels: {
+                              show: true,
+                              total: {
+                                show: true,
+                                label: 'Total',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#6b7280',
+                                formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0),
+                              },
+                            },
+                          },
+                        },
+                      },
+                      dataLabels: { enabled: false },
+                      legend: { position: 'bottom', fontSize: '13px', markers: { radius: 4 } },
+                      stroke: { width: 0 },
+                      tooltip: { y: { formatter: (v) => `${v} student${v !== 1 ? 's' : ''}` } },
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
                 );
               })()}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Enrollment Type</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-slide-up" style={{ animationDelay: '180ms' }}>
+              <h2 className="text-base font-semibold text-gray-700 mb-1">Enrollment Type</h2>
+              <p className="text-xs text-gray-400 mb-4">New enrollee, transferee, and re-enrollee split</p>
               {(() => {
                 const enrollmentTypeData = toChartData(stats?.by_enrollment_type);
                 return enrollmentTypeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={enrollmentTypeData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        innerRadius={50}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                        isAnimationActive
-                        animationBegin={300}
-                        animationDuration={900}
-                        animationEasing="ease-out"
-                      >
-                        {enrollmentTypeData.map((_, i) => (
-                          <Cell key={i} fill={ENROLLMENT_COLORS[i % ENROLLMENT_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <ReactApexChart
+                    type="donut"
+                    height={280}
+                    series={enrollmentTypeData.map((d) => d.value)}
+                    options={{
+                      labels: enrollmentTypeData.map((d) => d.name.replace(/_/g, ' ')),
+                      colors: ['#10b981', '#f59e0b', '#8b5cf6'],
+                      chart: { fontFamily: 'inherit', toolbar: { show: false } },
+                      plotOptions: {
+                        pie: {
+                          donut: {
+                            size: '65%',
+                            labels: {
+                              show: true,
+                              total: {
+                                show: true,
+                                label: 'Total',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#6b7280',
+                                formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0),
+                              },
+                            },
+                          },
+                        },
+                      },
+                      dataLabels: { enabled: false },
+                      legend: { position: 'bottom', fontSize: '13px', markers: { radius: 4 } },
+                      stroke: { width: 0 },
+                      tooltip: { y: { formatter: (v) => `${v} student${v !== 1 ? 's' : ''}` } },
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
                 );
@@ -246,46 +242,59 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Row 2: Both Bar Charts side by side */}
+          {/* Row 2: Bar Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Students by Strand</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-slide-up" style={{ animationDelay: '260ms' }}>
+              <h2 className="text-base font-semibold text-gray-700 mb-1">Students by Strand</h2>
+              <p className="text-xs text-gray-400 mb-4">Enrollment count per academic strand</p>
               {(() => {
                 const strandData = toChartData(stats?.by_strand);
                 return strandData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={strandData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out">
-                        {strandData.map((_, i) => (
-                          <Cell key={i} fill={STRAND_COLORS[i % STRAND_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <ReactApexChart
+                    type="bar"
+                    height={260}
+                    series={[{ name: 'Students', data: strandData.map((d) => d.value) }]}
+                    options={{
+                      chart: { fontFamily: 'inherit', toolbar: { show: false }, sparkline: { enabled: false } },
+                      xaxis: { categories: strandData.map((d) => d.name), labels: { style: { fontSize: '12px', colors: '#6b7280' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+                      yaxis: { labels: { style: { fontSize: '12px', colors: '#6b7280' } }, forceNiceScale: true },
+                      grid: { borderColor: '#f3f4f6', strokeDashArray: 4, yaxis: { lines: { show: true } }, xaxis: { lines: { show: false } } },
+                      plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', distributed: true } },
+                      colors: ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6'],
+                      dataLabels: { enabled: false },
+                      legend: { show: false },
+                      tooltip: { y: { formatter: (v) => `${v} student${v !== 1 ? 's' : ''}` } },
+                      states: { hover: { filter: { type: 'lighten', value: 0.1 } } },
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
                 );
               })()}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">By Grade Level</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-slide-up" style={{ animationDelay: '340ms' }}>
+              <h2 className="text-base font-semibold text-gray-700 mb-1">By Grade Level</h2>
+              <p className="text-xs text-gray-400 mb-4">Students enrolled per grade</p>
               {(() => {
                 const gradeData = toChartData(stats?.by_grade_level);
                 return gradeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={gradeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} isAnimationActive animationBegin={300} animationDuration={700} animationEasing="ease-out" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <ReactApexChart
+                    type="bar"
+                    height={260}
+                    series={[{ name: 'Students', data: gradeData.map((d) => d.value) }]}
+                    options={{
+                      chart: { fontFamily: 'inherit', toolbar: { show: false } },
+                      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: '40%', distributed: true } },
+                      colors: ['#10b981', '#3b82f6'],
+                      xaxis: { categories: gradeData.map((d) => d.name), labels: { style: { fontSize: '12px', colors: '#6b7280' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+                      yaxis: { labels: { style: { fontSize: '13px', colors: '#374151', fontWeight: 500 } } },
+                      grid: { borderColor: '#f3f4f6', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+                      dataLabels: { enabled: true, style: { fontSize: '12px', fontWeight: 600 }, formatter: (v) => v },
+                      legend: { show: false },
+                      tooltip: { y: { formatter: (v) => `${v} student${v !== 1 ? 's' : ''}` } },
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-12">No data yet</p>
                 );
