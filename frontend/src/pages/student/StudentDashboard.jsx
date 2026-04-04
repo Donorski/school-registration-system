@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -37,9 +37,7 @@ function WelcomeModal({ onComplete }) {
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-6 text-center">
           <div className="flex items-center justify-center mb-3">
-            <div className="bg-white/20 p-3 rounded-full">
-              <Sparkles size={28} className="text-white" />
-            </div>
+            <img src="/images/logo.png" alt="DBTC Logo" className="w-16 h-16 object-contain drop-shadow-md" />
           </div>
           <h2 className="text-xl font-bold text-white">Welcome to DBTC!</h2>
           <p className="text-emerald-100 text-sm mt-1">Let's set up your profile to get started</p>
