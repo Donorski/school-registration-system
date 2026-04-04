@@ -86,6 +86,7 @@ export default function StudentProfile() {
   const [transfereeSubjects, setTransfereeSubjects] = useState([]);
   const [showTransfereeModal, setShowTransfereeModal] = useState(false);
   const [step, setStep] = useState(1);
+  const [stepDirection, setStepDirection] = useState('forward');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
 
@@ -213,11 +214,13 @@ export default function StudentProfile() {
         if (missing.length > 0) { toast.error(`Please fill in: ${missing.join(', ')}`); return; }
       }
     }
+    setStepDirection('forward');
     setStep(s => Math.min(s + 1, STEPS.length));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleBack = () => {
+    setStepDirection('back');
     setStep(s => Math.max(s - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -497,6 +500,14 @@ export default function StudentProfile() {
 
   return (
     <DashboardLayout>
+      {/* Saving overlay */}
+      {saving && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <Loader2 size={40} className="animate-spin text-emerald-600 mb-3" />
+          <p className="text-sm font-medium text-gray-600">Submitting your application...</p>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 mb-6">
         <Link to="/student/dashboard" className="p-2 hover:bg-gray-100 rounded-lg transition">
           <ArrowLeft size={20} />
@@ -543,6 +554,12 @@ export default function StudentProfile() {
       )}
 
       <StepIndicator current={step} />
+
+      <div
+        key={step}
+        className={stepDirection === 'forward' ? 'animate-slide-from-right' : 'animate-slide-from-left'}
+        style={{ overflow: 'hidden' }}
+      >
 
       {/* ── Step 1: Enrollment Type ─────────────────────────────────── */}
       {step === 1 && (
@@ -947,6 +964,8 @@ export default function StudentProfile() {
           </div>
         </div>
       )}
+
+      </div>{/* end animated step wrapper */}
 
       {/* ── Navigation Buttons ──────────────────────────────────────── */}
       <div className="flex items-center justify-between mt-6">
