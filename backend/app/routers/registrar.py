@@ -17,7 +17,7 @@ from app.models.subject import Subject
 from app.models.student_subject import StudentSubject
 from app.schemas.student import StudentResponse, StudentListResponse, TransfereeCreditUpdate, EnrollmentRecordResponse
 from app.schemas.subject import (
-    SubjectCreate, SubjectUpdate, SubjectResponse,
+    SubjectCreate, SubjectUpdate, SubjectResponse, SubjectListResponse,
     AssignSubject, UnassignSubject, BulkAssignSubjects,
 )
 from app.schemas.common import MessageResponse
@@ -348,15 +348,17 @@ def create_subject(
     return _subject_to_response(subject, db)
 
 
-@router.get("/subjects", response_model=list[SubjectResponse])
+@router.get("/subjects", response_model=SubjectListResponse)
 def list_subjects(
     strand: str | None = None,
     grade_level: str | None = None,
     semester: str | None = None,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
     db: Session = Depends(get_db),
 ):
-    """List all subjects with optional strand/grade/semester filters."""
+    """List subjects with optional filters and pagination."""
     query = db.query(Subject)
     if strand:
         query = query.filter(Subject.strand == strand)
@@ -364,8 +366,14 @@ def list_subjects(
         query = query.filter(Subject.grade_level == grade_level)
     if semester:
         query = query.filter(Subject.semester == semester)
-    subjects = query.order_by(Subject.subject_code).all()
-    return [_subject_to_response(s, db) for s in subjects]
+    total = query.count()
+    subjects = query.order_by(Subject.subject_code).offset((page - 1) * per_page).limit(per_page).all()
+    return SubjectListResponse(
+        subjects=[_subject_to_response(s, db) for s in subjects],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
 
 
 @router.put("/subjects/{subject_id}", response_model=SubjectResponse)

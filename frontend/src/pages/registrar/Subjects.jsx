@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -9,8 +9,12 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '../../services/api';
 import { getErrorMessage } from '../../utils/helpers';
 
+const PER_PAGE = 20;
+
 export default function Subjects() {
   const [subjects, setSubjects] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -23,18 +27,31 @@ export default function Subjects() {
   const [pendingSubmit, setPendingSubmit] = useState(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
-  const fetchData = () => {
+  const totalPages = Math.ceil(total / PER_PAGE);
+
+  const fetchData = (p = page) => {
     setLoading(true);
-    const params = {};
+    const params = { page: p, per_page: PER_PAGE };
     if (strandFilter) params.strand = strandFilter;
     if (gradeFilter) params.grade_level = gradeFilter;
     if (semesterFilter) params.semester = semesterFilter;
     getSubjects(params)
-      .then((res) => setSubjects(res.data))
+      .then((res) => {
+        setSubjects(res.data.subjects);
+        setTotal(res.data.total);
+      })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, [strandFilter, gradeFilter, semesterFilter]);
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+    fetchData(1);
+  }, [strandFilter, gradeFilter, semesterFilter]);
+
+  useEffect(() => {
+    fetchData(page);
+  }, [page]);
 
   const openAdd = () => {
     setEditing(null);
@@ -66,7 +83,7 @@ export default function Subjects() {
       }
       setModalOpen(false);
       setPendingSubmit(null);
-      fetchData();
+      fetchData(page);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -81,7 +98,10 @@ export default function Subjects() {
       await deleteSubject(deleteTarget.id);
       toast.success('Subject deleted');
       setDeleteTarget(null);
-      fetchData();
+      // If last item on page, go back one page
+      const newPage = subjects.length === 1 && page > 1 ? page - 1 : page;
+      setPage(newPage);
+      fetchData(newPage);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -96,7 +116,7 @@ export default function Subjects() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Subjects</h1>
-          <p className="text-gray-500">{subjects.length} subject(s)</p>
+          <p className="text-gray-500">{total} subject{total !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
           <Plus size={16} /> Add Subject
@@ -167,6 +187,44 @@ export default function Subjects() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+            <p className="text-sm text-gray-500">
+              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
+                className="p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
+                    p === page
+                      ? 'bg-emerald-600 text-white'
+                      : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>

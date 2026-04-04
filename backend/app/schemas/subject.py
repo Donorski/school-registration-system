@@ -52,6 +52,13 @@ class SubjectResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SubjectListResponse(BaseModel):
+    subjects: list[SubjectResponse]
+    total: int
+    page: int
+    per_page: int
+
+
 class AssignSubject(BaseModel):
     student_id: int
     subject_id: int
