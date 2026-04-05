@@ -16,6 +16,7 @@ export default function Subjects() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -29,18 +30,35 @@ export default function Subjects() {
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
-  const fetchData = (p = page) => {
-    setLoading(true);
-    const params = { page: p, per_page: PER_PAGE };
-    if (strandFilter) params.strand = strandFilter;
-    if (gradeFilter) params.grade_level = gradeFilter;
-    if (semesterFilter) params.semester = semesterFilter;
-    getSubjects(params)
-      .then((res) => {
-        setSubjects(res.data.subjects);
-        setTotal(res.data.total);
-      })
-      .finally(() => setLoading(false));
+  const fetchData = (p = page, isPageChange = false) => {
+    if (isPageChange) {
+      const timer = setTimeout(() => setPageLoading(true), 150);
+      const params = { page: p, per_page: PER_PAGE };
+      if (strandFilter) params.strand = strandFilter;
+      if (gradeFilter) params.grade_level = gradeFilter;
+      if (semesterFilter) params.semester = semesterFilter;
+      getSubjects(params)
+        .then((res) => {
+          setSubjects(res.data.subjects);
+          setTotal(res.data.total);
+        })
+        .finally(() => {
+          clearTimeout(timer);
+          setPageLoading(false);
+        });
+    } else {
+      setLoading(true);
+      const params = { page: p, per_page: PER_PAGE };
+      if (strandFilter) params.strand = strandFilter;
+      if (gradeFilter) params.grade_level = gradeFilter;
+      if (semesterFilter) params.semester = semesterFilter;
+      getSubjects(params)
+        .then((res) => {
+          setSubjects(res.data.subjects);
+          setTotal(res.data.total);
+        })
+        .finally(() => setLoading(false));
+    }
   };
 
   // Reset to page 1 when filters change
@@ -50,7 +68,7 @@ export default function Subjects() {
   }, [strandFilter, gradeFilter, semesterFilter]);
 
   useEffect(() => {
-    fetchData(page);
+    fetchData(page, true);
   }, [page]);
 
   const openAdd = () => {
@@ -153,7 +171,7 @@ export default function Subjects() {
         ) : subjects.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No subjects found</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className={`overflow-x-auto transition-opacity duration-300 ${pageLoading ? 'opacity-40' : 'opacity-100'}`}>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
@@ -192,8 +210,8 @@ export default function Subjects() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex flex-col items-center gap-1 px-4 py-3 border-t bg-gray-50">
-            <div className="flex items-center justify-center gap-1">
+          <div className="flex items-center justify-center px-4 py-3 border-t bg-gray-50">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage((p) => p - 1)}
                 disabled={page === 1}
@@ -222,9 +240,6 @@ export default function Subjects() {
                 <ChevronRight size={16} />
               </button>
             </div>
-            <p className="text-sm text-gray-500">
-              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
-            </p>
           </div>
         )}
       </div>
