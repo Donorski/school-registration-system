@@ -57,10 +57,9 @@ function formatAction(action) {
 function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
+  const date = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${date} ${time}`;
 }
 
 export default function AuditLogs() {
