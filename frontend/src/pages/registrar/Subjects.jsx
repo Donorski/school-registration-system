@@ -63,12 +63,15 @@ export default function Subjects() {
 
   // Reset to page 1 when filters change
   useEffect(() => {
-    setPage(1);
-    fetchData(1);
+    if (page !== 1) {
+      setPage(1); // page useEffect will trigger fetchData
+    } else {
+      fetchData(1);
+    }
   }, [strandFilter, gradeFilter, semesterFilter]);
 
   useEffect(() => {
-    fetchData(page, true);
+    fetchData(page, page !== 1);
   }, [page]);
 
   const openAdd = () => {

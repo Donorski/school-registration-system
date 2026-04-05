@@ -367,9 +367,37 @@ def list_subjects(
     if semester:
         query = query.filter(Subject.semester == semester)
     total = query.count()
-    subjects = query.order_by(Subject.subject_code).offset((page - 1) * per_page).limit(per_page).all()
+    enrolled_subquery = (
+        db.query(StudentSubject.subject_id, func.count(StudentSubject.id).label("enrolled_count"))
+        .group_by(StudentSubject.subject_id)
+        .subquery()
+    )
+    rows = (
+        query.add_columns(func.coalesce(enrolled_subquery.c.enrolled_count, 0).label("enrolled_count"))
+        .outerjoin(enrolled_subquery, Subject.id == enrolled_subquery.c.subject_id)
+        .order_by(Subject.subject_code)
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+    subjects_out = []
+    for subject, enrolled_count in rows:
+        subjects_out.append(SubjectResponse(
+            id=subject.id,
+            subject_code=subject.subject_code,
+            subject_name=subject.subject_name,
+            units=subject.units,
+            schedule=subject.schedule,
+            strand=subject.strand,
+            grade_level=subject.grade_level,
+            semester=subject.semester,
+            category=subject.category,
+            max_students=subject.max_students,
+            enrolled_count=enrolled_count,
+            created_at=subject.created_at,
+        ))
     return SubjectListResponse(
-        subjects=[_subject_to_response(s, db) for s in subjects],
+        subjects=subjects_out,
         total=total,
         page=page,
         per_page=per_page,
