@@ -16,7 +16,6 @@ export default function Subjects() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [pageLoading, setPageLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -30,48 +29,31 @@ export default function Subjects() {
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
-  const fetchData = (p = page, isPageChange = false) => {
-    if (isPageChange) {
-      const timer = setTimeout(() => setPageLoading(true), 150);
-      const params = { page: p, per_page: PER_PAGE };
-      if (strandFilter) params.strand = strandFilter;
-      if (gradeFilter) params.grade_level = gradeFilter;
-      if (semesterFilter) params.semester = semesterFilter;
-      getSubjects(params)
-        .then((res) => {
-          setSubjects(res.data.subjects);
-          setTotal(res.data.total);
-        })
-        .finally(() => {
-          clearTimeout(timer);
-          setPageLoading(false);
-        });
-    } else {
-      setLoading(true);
-      const params = { page: p, per_page: PER_PAGE };
-      if (strandFilter) params.strand = strandFilter;
-      if (gradeFilter) params.grade_level = gradeFilter;
-      if (semesterFilter) params.semester = semesterFilter;
-      getSubjects(params)
-        .then((res) => {
-          setSubjects(res.data.subjects);
-          setTotal(res.data.total);
-        })
-        .finally(() => setLoading(false));
-    }
+  const fetchData = (p = page) => {
+    setLoading(true);
+    const params = { page: p, per_page: PER_PAGE };
+    if (strandFilter) params.strand = strandFilter;
+    if (gradeFilter) params.grade_level = gradeFilter;
+    if (semesterFilter) params.semester = semesterFilter;
+    getSubjects(params)
+      .then((res) => {
+        setSubjects(res.data.subjects);
+        setTotal(res.data.total);
+      })
+      .finally(() => setLoading(false));
   };
 
   // Reset to page 1 when filters change
   useEffect(() => {
     if (page !== 1) {
-      setPage(1); // page useEffect will trigger fetchData
+      setPage(1);
     } else {
       fetchData(1);
     }
   }, [strandFilter, gradeFilter, semesterFilter]);
 
   useEffect(() => {
-    fetchData(page, page !== 1);
+    fetchData(page);
   }, [page]);
 
   const openAdd = () => {
@@ -169,10 +151,10 @@ export default function Subjects() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {!loading && !pageLoading && subjects.length === 0 ? (
+        {!loading && subjects.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No subjects found</div>
         ) : (
-          <div className={`overflow-x-auto transition-opacity duration-300 ${pageLoading ? 'opacity-40' : 'opacity-100'}`}>
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
