@@ -193,7 +193,7 @@ export default function Subjects() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col items-center gap-1 px-4 py-3 border-t bg-gray-50">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-1">
               <button
                 onClick={() => setPage((p) => p - 1)}
                 disabled={page === 1}
