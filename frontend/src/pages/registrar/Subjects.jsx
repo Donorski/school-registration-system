@@ -192,10 +192,7 @@ export default function Subjects() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
-            <p className="text-sm text-gray-500">
-              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
-            </p>
+          <div className="flex flex-col items-center gap-1 px-4 py-3 border-t bg-gray-50">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage((p) => p - 1)}
@@ -225,6 +222,9 @@ export default function Subjects() {
                 <ChevronRight size={16} />
               </button>
             </div>
+            <p className="text-sm text-gray-500">
+              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
+            </p>
           </div>
         )}
       </div>
