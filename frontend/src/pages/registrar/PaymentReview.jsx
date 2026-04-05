@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, User, CheckCircle, XCircle, Loader2, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonListItem } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
 import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment } from '../../services/api';
 import { getErrorMessage } from '../../utils/helpers';
@@ -98,7 +98,6 @@ export default function PaymentReview() {
     );
   });
 
-  if (loading) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
 
   return (
     <DashboardLayout>
@@ -122,7 +121,8 @@ export default function PaymentReview() {
             />
           </div>
           <div className="space-y-1 max-h-96 overflow-y-auto">
-            {filteredStudents.map((s) => (
+            {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonListItem key={i} />)}
+            {!loading && filteredStudents.map((s) => (
               <button
                 key={s.id}
                 onClick={() => handleSelectStudent(s.id)}
@@ -153,7 +153,7 @@ export default function PaymentReview() {
                 </div>
               </button>
             ))}
-            {filteredStudents.length === 0 && (
+            {!loading && filteredStudents.length === 0 && (
               <p className="text-center text-gray-400 py-4 text-sm">No pending receipts</p>
             )}
           </div>

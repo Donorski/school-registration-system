@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, Trash2, Search, ChevronLeft, ChevronRight, FileText, Download, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonRow } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
 import { getAdminStudents, deleteStudent, generateEnrollmentReport } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
@@ -168,13 +168,11 @@ export default function AllStudents() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <LoadingSpinner />
-        ) : students.length === 0 ? (
+        {!loading && students.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No students found</div>
         ) : (
           <>
-            <div key={page} className="overflow-x-auto animate-table-enter">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -188,6 +186,7 @@ export default function AllStudents() {
                   </tr>
                 </thead>
                 <tbody>
+                  {loading && Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} cols={7} />)}
                   {students.map((s) => (
                     <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs">{s.student_number || <span className="text-gray-400 italic">Pending</span>}</td>
@@ -228,7 +227,7 @@ export default function AllStudents() {
                 </tbody>
               </table>
             </div>
-            {totalPages > 1 && (
+            {!loading && totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t">
                 <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                 <div className="flex gap-2">

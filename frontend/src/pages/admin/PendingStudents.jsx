@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonRow } from '../../components/SkeletonLoader';
 import { getPendingStudents, approveStudent, denyStudent } from '../../services/api';
 import { formatDate, getErrorMessage } from '../../utils/helpers';
 
@@ -69,9 +69,7 @@ export default function PendingStudents() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <LoadingSpinner />
-        ) : students.length === 0 ? (
+        {!loading && students.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <CheckCircle size={40} className="mx-auto mb-2" />
             <p>No pending registrations</p>
@@ -91,6 +89,7 @@ export default function PendingStudents() {
                   </tr>
                 </thead>
                 <tbody>
+                  {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={6} />)}
                   {students.map((s) => (
                     <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-800">
@@ -129,7 +128,7 @@ export default function PendingStudents() {
                 </tbody>
               </table>
             </div>
-            {totalPages > 1 && (
+            {!loading && totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t">
                 <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                 <div className="flex gap-2">

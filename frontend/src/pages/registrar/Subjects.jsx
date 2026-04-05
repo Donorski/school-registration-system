@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Plus, Edit, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonRow } from '../../components/SkeletonLoader';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '../../services/api';
@@ -169,9 +169,7 @@ export default function Subjects() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <LoadingSpinner />
-        ) : subjects.length === 0 ? (
+        {!loading && !pageLoading && subjects.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No subjects found</div>
         ) : (
           <div className={`overflow-x-auto transition-opacity duration-300 ${pageLoading ? 'opacity-40' : 'opacity-100'}`}>
@@ -189,7 +187,8 @@ export default function Subjects() {
                 </tr>
               </thead>
               <tbody>
-                {subjects.map((s) => (
+                {loading && Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} cols={8} />)}
+                {!loading && subjects.map((s) => (
                   <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-emerald-600">{s.subject_code}</td>
                     <td className="px-4 py-3">{s.subject_name}</td>

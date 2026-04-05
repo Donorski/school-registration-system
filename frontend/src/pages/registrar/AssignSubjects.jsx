@@ -3,7 +3,7 @@ import { Plus, Trash2, Loader2, Search, User, CheckCircle, ListChecks, Printer, 
 import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonListItem } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
 import PrintableClassList from '../../components/PrintableClassList';
 import { getApprovedStudents, getSubjects, assignSubject, unassignSubject, getStudentCompleteInfo, getStudentEnrolledSubjects, bulkAssignSubjects, getClassList, updateTransfereeCreditStatus, getRegistrarStudentEnrollmentHistory } from '../../services/api';
@@ -276,12 +276,11 @@ export default function AssignSubjects() {
 
           {/* Student List */}
           <div className="space-y-1 max-h-[420px] overflow-y-auto">
-            {loading ? (
-              <LoadingSpinner />
-            ) : students.length === 0 ? (
+            {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonListItem key={i} />)}
+            {!loading && students.length === 0 && (
               <p className="text-center text-gray-400 py-4 text-sm">No students found</p>
-            ) : (
-              students.map((s) => (
+            )}
+            {!loading && students.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => handleSelectStudent(s.id)}
@@ -307,8 +306,7 @@ export default function AssignSubjects() {
                     <p className="text-[10px] text-gray-400">{s.strand || '—'} | {s.grade_level_to_enroll || '—'}{s.semester ? ` | ${s.semester}` : ''}</p>
                   </div>
                 </button>
-              ))
-            )}
+            ))}
           </div>
         </div>
 

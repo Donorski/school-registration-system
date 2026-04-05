@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ScrollText } from 'lucide-react';
 import DashboardLayout from '../../components/DashboardLayout';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { SkeletonRow } from '../../components/SkeletonLoader';
 import { getAuditLogs } from '../../services/api';
 
 const ACTION_COLORS = {
@@ -169,9 +169,7 @@ export default function AuditLogs() {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <LoadingSpinner />
-        ) : logs.length === 0 ? (
+        {!loading && logs.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <ScrollText size={40} className="mx-auto mb-2" />
             <p>No audit log entries found</p>
@@ -191,6 +189,7 @@ export default function AuditLogs() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
+                  {loading && Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} cols={6} />)}
                   {logs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">
@@ -222,7 +221,7 @@ export default function AuditLogs() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!loading && totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-600">
                 <span>
                   Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}

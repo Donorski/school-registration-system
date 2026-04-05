@@ -10,13 +10,28 @@ export function SkeletonCard() {
   );
 }
 
-export function SkeletonRow() {
+const COL_WIDTHS = ['w-20', 'w-36', 'w-24', 'w-16', 'w-20', 'w-28', 'w-16', 'w-24'];
+
+export function SkeletonRow({ cols = 4 }) {
   return (
-    <tr className="border-b animate-pulse">
-      <td className="py-3 pr-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
-      <td className="py-3 pr-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
-      <td className="py-3 pr-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
-      <td className="py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+    <tr className="border-b">
+      {Array.from({ length: cols }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className={`h-4 bg-gray-200 rounded animate-pulse ${COL_WIDTHS[i % COL_WIDTHS.length]}`} />
+        </td>
+      ))}
     </tr>
+  );
+}
+
+export function SkeletonListItem() {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="w-9 h-9 rounded-lg bg-gray-200 animate-pulse shrink-0" />
+      <div className="flex-1 space-y-1.5">
+        <div className="h-3.5 bg-gray-200 rounded animate-pulse w-3/4" />
+        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
+      </div>
+    </div>
   );
 }

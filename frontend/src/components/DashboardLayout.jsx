@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import BackToTop from "./BackToTop";
+import RouteProgressBar from "./RouteProgressBar";
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
       <BackToTop />
+      <RouteProgressBar />
     </div>
   );
 }
