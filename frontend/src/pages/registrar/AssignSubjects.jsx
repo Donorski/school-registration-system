@@ -42,6 +42,8 @@ export default function AssignSubjects() {
   const [studentHistory, setStudentHistory] = useState([]);
   const [expandedRecord, setExpandedRecord] = useState(null);
 
+  const subjectsPanelRef = useRef(null);
+
   // Class list
   const [showClassListPicker, setShowClassListPicker] = useState(false);
   const [clStrand, setClStrand] = useState('ABM');
@@ -121,6 +123,9 @@ export default function AssignSubjects() {
       if (student.semester) params.semester = student.semester;
       const subjectsRes = await getSubjects(params);
       setSubjects(subjectsRes.data);
+      if (window.innerWidth < 1024) {
+        setTimeout(() => subjectsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -311,7 +316,15 @@ export default function AssignSubjects() {
         </div>
 
         {/* Available Subjects */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border p-6">
+        <div ref={subjectsPanelRef} className="lg:col-span-2 bg-white rounded-xl shadow-sm border p-6">
+          {selectedStudent && (
+            <button
+              onClick={() => { setSelectedStudent(null); setStudentDetail(null); setSubjects([]); }}
+              className="lg:hidden flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3"
+            >
+              ← Back to student list
+            </button>
+          )}
           {studentDetail && (
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
