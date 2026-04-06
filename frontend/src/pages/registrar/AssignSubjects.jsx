@@ -210,14 +210,14 @@ export default function AssignSubjects() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Assign Subjects</h1>
-          <p className="text-gray-500">Select a student and assign subjects to them</p>
+          <p className="text-gray-500 hidden sm:block">Select a student and assign subjects to them</p>
         </div>
         <button
           onClick={() => setShowClassListPicker(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 sm:px-4 rounded-lg transition shrink-0"
         >
           <Printer size={16} />
-          Print Class List
+          <span className="hidden sm:inline">Print Class List</span>
         </button>
       </div>
 
