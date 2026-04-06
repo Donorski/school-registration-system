@@ -86,7 +86,7 @@ export default function PaymentReview() {
   };
 
 
-  const isPdf = (path) => path?.toLowerCase().endsWith('.pdf');
+  const isPdf = (path) => path?.toLowerCase().endsWith('.pdf') || path?.includes('/raw/upload/');
 
   const filteredStudents = students.filter((s) => {
     if (!searchQuery) return true;

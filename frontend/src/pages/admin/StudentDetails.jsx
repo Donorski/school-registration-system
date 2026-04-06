@@ -8,6 +8,8 @@ import Modal from '../../components/Modal';
 import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory, downloadStudentFiles } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
+const isPdf = (path) => path?.toLowerCase().endsWith('.pdf') || path?.includes('/raw/upload/');
+
 export default function StudentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -215,7 +217,7 @@ export default function StudentDetails() {
             <div>
               <p className="text-xs text-gray-500 mb-2">Last School Grades</p>
               {student.grades_path ? (
-                student.grades_path.endsWith('.pdf') ? (
+                isPdf(student.grades_path) ? (
                   <a href={student.grades_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
@@ -230,7 +232,7 @@ export default function StudentDetails() {
             <div>
               <p className="text-xs text-gray-500 mb-2">Voucher</p>
               {student.voucher_path ? (
-                student.voucher_path.endsWith('.pdf') ? (
+                isPdf(student.voucher_path) ? (
                   <a href={student.voucher_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
@@ -245,7 +247,7 @@ export default function StudentDetails() {
             <div>
               <p className="text-xs text-gray-500 mb-2">PSA Birth Certificate</p>
               {student.psa_birth_cert_path ? (
-                student.psa_birth_cert_path.endsWith('.pdf') ? (
+                isPdf(student.psa_birth_cert_path) ? (
                   <a href={student.psa_birth_cert_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
@@ -261,7 +263,7 @@ export default function StudentDetails() {
               <div>
                 <p className="text-xs text-gray-500 mb-2">Transfer Credential / Form 137</p>
                 {student.transfer_credential_path ? (
-                  student.transfer_credential_path.endsWith('.pdf') ? (
+                  isPdf(student.transfer_credential_path) ? (
                     <a href={student.transfer_credential_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
                     </a>
@@ -278,7 +280,7 @@ export default function StudentDetails() {
               <div>
                 <p className="text-xs text-gray-500 mb-2">Good Moral Certificate</p>
                 {student.good_moral_path ? (
-                  student.good_moral_path.endsWith('.pdf') ? (
+                  isPdf(student.good_moral_path) ? (
                     <a href={student.good_moral_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
                     </a>
