@@ -876,7 +876,7 @@ export default function StudentProfile() {
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[360px] text-sm">
                   <thead>
                     <tr className="border-b text-left text-gray-500">
                       <th className="pb-2 font-medium pr-3">Subject Name</th>
@@ -1061,7 +1061,7 @@ export default function StudentProfile() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[480px] text-sm">
                     <thead>
                       <tr className="border-b text-left text-gray-500 bg-gray-50">
                         <th className="pb-3 pt-2 px-3 font-medium rounded-l-lg">Subject Name <span className="text-red-500">*</span></th>

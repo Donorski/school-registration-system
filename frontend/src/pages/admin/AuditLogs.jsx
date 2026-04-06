@@ -176,7 +176,7 @@ export default function AuditLogs() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
                   <tr>
                     <th className="px-4 py-3 text-left">Date / Time</th>

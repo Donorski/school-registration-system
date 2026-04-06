@@ -155,7 +155,7 @@ export default function Subjects() {
           <div className="text-center py-12 text-gray-400">No subjects found</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Code</th>

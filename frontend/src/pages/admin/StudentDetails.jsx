@@ -371,7 +371,7 @@ export default function StudentDetails() {
                 {expandedRecord === record.id && (
                   <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
                     {record.subjects_snapshot && record.subjects_snapshot.length > 0 ? (
-                      <table className="w-full text-sm mt-3">
+                      <table className="w-full min-w-[360px] text-sm mt-3">
                         <thead>
                           <tr className="border-b text-left text-gray-500">
                             <th className="pb-2 font-medium">Code</th>
