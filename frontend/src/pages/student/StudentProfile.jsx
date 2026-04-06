@@ -118,7 +118,7 @@ export default function StudentProfile() {
       .then(([profileRes, calendarRes]) => {
         const data = profileRes.data;
         const cal = calendarRes.data;
-        const submitted = !!data.first_name && !!data.last_name;
+        const submitted = !!data.first_name && !!data.last_name && !!data.enrollment_type;
 
         reset(data);
         setStatus(data.status);
@@ -368,7 +368,7 @@ export default function StudentProfile() {
   };
 
   // ── Submission ───────────────────────────────────────────────────────
-  const isLocked = (status === 'pending' || status === 'approved') && hasSubmitted;
+  const isLocked = (status === 'pending' || status === 'approved') && hasSubmitted && !!enrollmentType;
   const isDenied = status === 'denied';
 
   const doSubmit = (data) => {
