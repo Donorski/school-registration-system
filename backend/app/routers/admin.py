@@ -1,10 +1,14 @@
 """Admin endpoints — student management, approvals, dashboard, account management."""
 
+import io
 import os
+import re
+import zipfile
 from datetime import date, datetime, timezone
 from io import BytesIO
 from typing import Optional
 
+import requests as http_requests
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -28,6 +32,7 @@ from app.utils.report_pdf import build_enrollment_report
 from app.models.audit_log import AuditLog
 from app.models.student_subject import StudentSubject
 from app.models.announcement import Announcement
+from app.utils.cloudinary_utils import delete_student_files, clear_student_file_fields
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -145,6 +150,52 @@ def list_pending_students(
     )
 
 
+@router.get("/students/{student_id}/download-files")
+def download_student_files(
+    student_id: int,
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Download all uploaded files for a student as a ZIP archive."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    student_name = re.sub(r"[^\w\s-]", "", f"{student.first_name or ''} {student.last_name or ''}".strip()) or f"student_{student_id}"
+    folder_name = student_name.replace(" ", "_")
+
+    file_entries = [
+        ("photo", student.student_photo_path),
+        ("grades", student.grades_path),
+        ("voucher", student.voucher_path),
+        ("psa_birth_cert", student.psa_birth_cert_path),
+        ("transfer_credential", student.transfer_credential_path),
+        ("good_moral", student.good_moral_path),
+    ]
+    for i, url in enumerate(student.documents_path or []):
+        file_entries.append((f"document_{i + 1}", url))
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for label, url in file_entries:
+            if not url:
+                continue
+            try:
+                resp = http_requests.get(url, timeout=15)
+                resp.raise_for_status()
+                ext = url.split("?")[0].rsplit(".", 1)[-1] if "." in url else "bin"
+                zf.writestr(f"{folder_name}/{label}.{ext}", resp.content)
+            except Exception:
+                continue
+
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{folder_name}_files.zip"'},
+    )
+
+
 @router.put("/students/{student_id}/approve", response_model=MessageResponse)
 def approve_student(
     student_id: int,
@@ -175,6 +226,10 @@ def approve_student(
 
     student.status = StudentStatus.APPROVED
     student.updated_at = datetime.now(timezone.utc)
+
+    # Delete enrollment documents from Cloudinary — no longer needed after approval
+    delete_student_files(student)
+    clear_student_file_fields(student)
 
     # Notify student
     create_notification(
@@ -223,6 +278,10 @@ def deny_student(
     student.status = StudentStatus.DENIED
     student.denial_reason = (body.reason.strip() if body and body.reason and body.reason.strip() else None)
     student.updated_at = datetime.now(timezone.utc)
+
+    # Delete enrollment documents from Cloudinary — no longer needed after denial
+    delete_student_files(student)
+    clear_student_file_fields(student)
 
     # Build notification message
     notif_body = "Your registration application has been denied."

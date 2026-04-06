@@ -25,6 +25,7 @@ from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
 from app.models.enrollment_record import EnrollmentRecord
 from app.utils.audit_log import create_audit_log
+from app.utils.cloudinary_utils import delete_cloudinary_file
 
 router = APIRouter(prefix="/api/registrar", tags=["Registrar"])
 
@@ -230,6 +231,10 @@ def verify_payment(
     student.payment_status = "verified"
     student.payment_verified_at = datetime.now(timezone.utc)
 
+    # Delete receipt from Cloudinary — no longer needed after verification
+    delete_cloudinary_file(student.payment_receipt_path)
+    student.payment_receipt_path = None
+
     # Auto-assign student number on payment verification
     if not student.student_number:
         student.student_number = _generate_school_id(db)
@@ -270,6 +275,8 @@ def reject_payment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Student does not have a pending payment receipt",
         )
+    # Delete receipt from Cloudinary before clearing
+    delete_cloudinary_file(student.payment_receipt_path)
     student.payment_status = "unpaid"
     student.payment_receipt_path = None
     student.payment_verified_at = None
