@@ -1,7 +1,8 @@
 export function getCloudinaryViewUrl(url) {
   if (!url) return url;
-  if (url.includes('/raw/upload/') && !url.includes('fl_attachment')) {
-    return url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/');
+  const isPdf = url.toLowerCase().endsWith('.pdf') || url.includes('/raw/upload/');
+  if (isPdf) {
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
   }
   return url;
 }
