@@ -121,13 +121,13 @@ export default function Subjects() {
           <h1 className="text-2xl font-bold text-gray-800">Subjects</h1>
           <p className="text-gray-500">{total} subject{total !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-          <Plus size={16} /> Add Subject
+        <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium transition shrink-0">
+          <Plus size={16} /><span className="hidden sm:inline">Add Subject</span>
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4 flex-wrap">
+      <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-4">
         <select value={strandFilter} onChange={(e) => setStrandFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
           <option value="">All Strands</option>
           <option value="ABM">ABM</option>
@@ -143,18 +143,18 @@ export default function Subjects() {
           <option value="Grade 11">Grade 11</option>
           <option value="Grade 12">Grade 12</option>
         </select>
-        <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
+        <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="col-span-2 sm:col-span-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
           <option value="">All Semesters</option>
           <option value="1st Semester">1st Semester</option>
           <option value="2nd Semester">2nd Semester</option>
         </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
         {!loading && subjects.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No subjects found</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
@@ -189,7 +189,7 @@ export default function Subjects() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </>
         )}
 
         {/* Pagination */}
