@@ -183,7 +183,8 @@ def download_student_files(
             try:
                 resp = http_requests.get(url, timeout=15)
                 resp.raise_for_status()
-                ext = url.split("?")[0].rsplit(".", 1)[-1] if "." in url else "bin"
+                filename = url.split("?")[0].split("/")[-1]
+                ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
                 zf.writestr(f"{folder_name}/{label}.{ext}", resp.content)
             except Exception:
                 continue
