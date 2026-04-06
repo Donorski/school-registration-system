@@ -465,7 +465,7 @@ export default function StudentProfile() {
                 <FileText size={32} /><span className="text-xs mt-1">PDF</span>
               </div>
             ) : (
-              <img src={`/uploads/${path}`} alt={label} className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+              <img src={path} alt={label} className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
             )
           ) : (
             <div className="w-24 h-24 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
@@ -722,7 +722,7 @@ export default function StudentProfile() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 {photoPath ? (
-                  <img src={`/uploads/${photoPath}`} alt="Student ID Photo" className="w-32 h-32 rounded-xl object-cover border-2 border-gray-200" />
+                  <img src={photoPath} alt="Student ID Photo" className="w-32 h-32 rounded-xl object-cover border-2 border-gray-200" />
                 ) : (
                   <div className="w-32 h-32 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
                     <User size={36} /><span className="text-xs mt-1">No photo</span>

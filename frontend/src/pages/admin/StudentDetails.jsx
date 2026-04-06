@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, User, FileText, AlertCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, User, FileText, AlertCircle, History, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory } from '../../services/api';
+import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory, downloadStudentFiles } from '../../services/api';
 import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
 export default function StudentDetails() {
@@ -20,6 +20,7 @@ export default function StudentDetails() {
   const [showDenyModal, setShowDenyModal] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [denying, setDenying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [enrollForm, setEnrollForm] = useState({
     enrollment_date: '',
     place_of_birth: '',
@@ -39,6 +40,27 @@ export default function StudentDetails() {
 
   const handleApproveClick = () => {
     setShowEnrollModal(true);
+  };
+
+  const handleDownloadFiles = async () => {
+    setDownloading(true);
+    try {
+      const res = await downloadStudentFiles(id);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/zip' }));
+      const name = `${student.first_name || ''}_${student.last_name || ''}_files`.trim().replace(/\s+/g, '_');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${name}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Files downloaded');
+    } catch {
+      toast.error('Failed to download files');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleEnrollSubmit = async (e) => {
@@ -114,6 +136,14 @@ export default function StudentDetails() {
         </div>
         {student.status === 'pending' && (
           <div className="flex gap-2">
+            <button
+              onClick={handleDownloadFiles}
+              disabled={downloading}
+              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
+            >
+              {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {downloading ? 'Downloading...' : 'Download Files'}
+            </button>
             <button onClick={handleApproveClick} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
               <CheckCircle size={16} /> Approve
             </button>
@@ -151,7 +181,7 @@ export default function StudentDetails() {
           <div className="mb-4">
             {student.student_photo_path ? (
               <img
-                src={`/uploads/${student.student_photo_path}`}
+                src={student.student_photo_path}
                 alt="Student ID Photo"
                 className="w-28 h-28 rounded-xl object-cover border-2 border-gray-200"
               />
@@ -186,12 +216,12 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">Last School Grades</p>
               {student.grades_path ? (
                 student.grades_path.endsWith('.pdf') ? (
-                  <a href={`/uploads/${student.grades_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <a href={student.grades_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
                 ) : (
-                  <a href={`/uploads/${student.grades_path}`} target="_blank" rel="noopener noreferrer">
-                    <img src={`/uploads/${student.grades_path}`} alt="Grades" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+                  <a href={student.grades_path} target="_blank" rel="noopener noreferrer">
+                    <img src={student.grades_path} alt="Grades" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
                   </a>
                 )
               ) : <p className="text-gray-400 text-xs italic">Not uploaded</p>}
@@ -201,12 +231,12 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">Voucher</p>
               {student.voucher_path ? (
                 student.voucher_path.endsWith('.pdf') ? (
-                  <a href={`/uploads/${student.voucher_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <a href={student.voucher_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
                 ) : (
-                  <a href={`/uploads/${student.voucher_path}`} target="_blank" rel="noopener noreferrer">
-                    <img src={`/uploads/${student.voucher_path}`} alt="Voucher" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+                  <a href={student.voucher_path} target="_blank" rel="noopener noreferrer">
+                    <img src={student.voucher_path} alt="Voucher" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
                   </a>
                 )
               ) : <p className="text-gray-400 text-xs italic">Not uploaded</p>}
@@ -216,12 +246,12 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">PSA Birth Certificate</p>
               {student.psa_birth_cert_path ? (
                 student.psa_birth_cert_path.endsWith('.pdf') ? (
-                  <a href={`/uploads/${student.psa_birth_cert_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <a href={student.psa_birth_cert_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
                   </a>
                 ) : (
-                  <a href={`/uploads/${student.psa_birth_cert_path}`} target="_blank" rel="noopener noreferrer">
-                    <img src={`/uploads/${student.psa_birth_cert_path}`} alt="PSA Birth Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+                  <a href={student.psa_birth_cert_path} target="_blank" rel="noopener noreferrer">
+                    <img src={student.psa_birth_cert_path} alt="PSA Birth Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
                   </a>
                 )
               ) : <p className="text-gray-400 text-xs italic">Not uploaded</p>}
@@ -232,12 +262,12 @@ export default function StudentDetails() {
                 <p className="text-xs text-gray-500 mb-2">Transfer Credential / Form 137</p>
                 {student.transfer_credential_path ? (
                   student.transfer_credential_path.endsWith('.pdf') ? (
-                    <a href={`/uploads/${student.transfer_credential_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                    <a href={student.transfer_credential_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
                     </a>
                   ) : (
-                    <a href={`/uploads/${student.transfer_credential_path}`} target="_blank" rel="noopener noreferrer">
-                      <img src={`/uploads/${student.transfer_credential_path}`} alt="Transfer Credential" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+                    <a href={student.transfer_credential_path} target="_blank" rel="noopener noreferrer">
+                      <img src={student.transfer_credential_path} alt="Transfer Credential" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
                     </a>
                   )
                 ) : <p className="text-amber-500 text-xs italic">Not uploaded</p>}
@@ -249,12 +279,12 @@ export default function StudentDetails() {
                 <p className="text-xs text-gray-500 mb-2">Good Moral Certificate</p>
                 {student.good_moral_path ? (
                   student.good_moral_path.endsWith('.pdf') ? (
-                    <a href={`/uploads/${student.good_moral_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                    <a href={student.good_moral_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
                     </a>
                   ) : (
-                    <a href={`/uploads/${student.good_moral_path}`} target="_blank" rel="noopener noreferrer">
-                      <img src={`/uploads/${student.good_moral_path}`} alt="Good Moral Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+                    <a href={student.good_moral_path} target="_blank" rel="noopener noreferrer">
+                      <img src={student.good_moral_path} alt="Good Moral Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
                     </a>
                   )
                 ) : <p className="text-amber-500 text-xs italic">Not uploaded</p>}
@@ -423,7 +453,7 @@ export default function StudentDetails() {
           <div className="flex items-start gap-4">
             {student?.student_photo_path ? (
               <img
-                src={`/uploads/${student.student_photo_path}`}
+                src={student.student_photo_path}
                 alt="Student ID Photo"
                 className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200 shrink-0"
               />

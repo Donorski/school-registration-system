@@ -291,7 +291,7 @@ export default function AssignSubjects() {
                   }`}
                 >
                   {s.student_photo_path ? (
-                    <img src={`/uploads/${s.student_photo_path}`} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0" />
+                    <img src={s.student_photo_path} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0" />
                   ) : (
                     <div className="w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">
                       <User size={16} />
@@ -317,7 +317,7 @@ export default function AssignSubjects() {
               <div className="flex items-center gap-3">
                 {studentDetail.student_photo_path ? (
                   <img
-                    src={`/uploads/${studentDetail.student_photo_path}`}
+                    src={studentDetail.student_photo_path}
                     alt="Student Photo"
                     className="w-12 h-12 rounded-lg object-cover border border-gray-200"
                   />

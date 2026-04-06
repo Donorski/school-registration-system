@@ -133,7 +133,7 @@ export default function PaymentReview() {
                 }`}
               >
                 {s.student_photo_path ? (
-                  <img src={`/uploads/${s.student_photo_path}`} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0" />
+                  <img src={s.student_photo_path} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0" />
                 ) : (
                   <div className="w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">
                     <User size={16} />
@@ -171,7 +171,7 @@ export default function PaymentReview() {
               <div className="flex items-center gap-3 mb-6">
                 {studentDetail.student_photo_path ? (
                   <img
-                    src={`/uploads/${studentDetail.student_photo_path}`}
+                    src={studentDetail.student_photo_path}
                     alt="Student Photo"
                     className="w-12 h-12 rounded-lg object-cover border border-gray-200"
                   />
@@ -211,9 +211,9 @@ export default function PaymentReview() {
                   <div className="border border-gray-200 rounded-lg p-3">
                     <p className="text-xs font-medium text-gray-500 mb-2">ID Photo</p>
                     {studentDetail.student_photo_path ? (
-                      <a href={`/uploads/${studentDetail.student_photo_path}`} target="_blank" rel="noopener noreferrer">
+                      <a href={studentDetail.student_photo_path} target="_blank" rel="noopener noreferrer">
                         <img
-                          src={`/uploads/${studentDetail.student_photo_path}`}
+                          src={studentDetail.student_photo_path}
                           alt="Student ID"
                           className="w-full max-h-48 object-contain rounded border border-gray-100"
                         />
@@ -228,14 +228,14 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Last School Grades</p>
                     {studentDetail.grades_path ? (
                       isPdf(studentDetail.grades_path) ? (
-                        <a href={`/uploads/${studentDetail.grades_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={studentDetail.grades_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
                       ) : (
-                        <a href={`/uploads/${studentDetail.grades_path}`} target="_blank" rel="noopener noreferrer">
+                        <a href={studentDetail.grades_path} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={`/uploads/${studentDetail.grades_path}`}
+                            src={studentDetail.grades_path}
                             alt="Grades"
                             className="w-full max-h-48 object-contain rounded border border-gray-100"
                           />
@@ -251,14 +251,14 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Voucher</p>
                     {studentDetail.voucher_path ? (
                       isPdf(studentDetail.voucher_path) ? (
-                        <a href={`/uploads/${studentDetail.voucher_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={studentDetail.voucher_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
                       ) : (
-                        <a href={`/uploads/${studentDetail.voucher_path}`} target="_blank" rel="noopener noreferrer">
+                        <a href={studentDetail.voucher_path} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={`/uploads/${studentDetail.voucher_path}`}
+                            src={studentDetail.voucher_path}
                             alt="Voucher"
                             className="w-full max-h-48 object-contain rounded border border-gray-100"
                           />
@@ -275,14 +275,14 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Transfer Credential / Form 137</p>
                       {studentDetail.transfer_credential_path ? (
                         isPdf(studentDetail.transfer_credential_path) ? (
-                          <a href={`/uploads/${studentDetail.transfer_credential_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <a href={studentDetail.transfer_credential_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
                           </a>
                         ) : (
-                          <a href={`/uploads/${studentDetail.transfer_credential_path}`} target="_blank" rel="noopener noreferrer">
+                          <a href={studentDetail.transfer_credential_path} target="_blank" rel="noopener noreferrer">
                             <img
-                              src={`/uploads/${studentDetail.transfer_credential_path}`}
+                              src={studentDetail.transfer_credential_path}
                               alt="Transfer Credential"
                               className="w-full max-h-48 object-contain rounded border border-gray-100"
                             />
@@ -300,14 +300,14 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Good Moral Certificate</p>
                       {studentDetail.good_moral_path ? (
                         isPdf(studentDetail.good_moral_path) ? (
-                          <a href={`/uploads/${studentDetail.good_moral_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <a href={studentDetail.good_moral_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
                           </a>
                         ) : (
-                          <a href={`/uploads/${studentDetail.good_moral_path}`} target="_blank" rel="noopener noreferrer">
+                          <a href={studentDetail.good_moral_path} target="_blank" rel="noopener noreferrer">
                             <img
-                              src={`/uploads/${studentDetail.good_moral_path}`}
+                              src={studentDetail.good_moral_path}
                               alt="Good Moral Certificate"
                               className="w-full max-h-48 object-contain rounded border border-gray-100"
                             />
@@ -324,14 +324,14 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">PSA Birth Certificate</p>
                     {studentDetail.psa_birth_cert_path ? (
                       isPdf(studentDetail.psa_birth_cert_path) ? (
-                        <a href={`/uploads/${studentDetail.psa_birth_cert_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={studentDetail.psa_birth_cert_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
                       ) : (
-                        <a href={`/uploads/${studentDetail.psa_birth_cert_path}`} target="_blank" rel="noopener noreferrer">
+                        <a href={studentDetail.psa_birth_cert_path} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={`/uploads/${studentDetail.psa_birth_cert_path}`}
+                            src={studentDetail.psa_birth_cert_path}
                             alt="PSA Birth Certificate"
                             className="w-full max-h-48 object-contain rounded border border-gray-100"
                           />
@@ -347,14 +347,14 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Payment Receipt</p>
                     {studentDetail.payment_receipt_path ? (
                       isPdf(studentDetail.payment_receipt_path) ? (
-                        <a href={`/uploads/${studentDetail.payment_receipt_path}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={studentDetail.payment_receipt_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
                       ) : (
-                        <a href={`/uploads/${studentDetail.payment_receipt_path}`} target="_blank" rel="noopener noreferrer">
+                        <a href={studentDetail.payment_receipt_path} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={`/uploads/${studentDetail.payment_receipt_path}`}
+                            src={studentDetail.payment_receipt_path}
                             alt="Payment receipt"
                             className="w-full max-h-48 object-contain rounded border border-gray-100"
                           />

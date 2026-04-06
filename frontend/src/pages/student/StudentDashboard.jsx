@@ -682,7 +682,7 @@ export default function StudentDashboard() {
                 <div className="mt-3">
                   <p className="text-xs text-teal-600 mb-2">Uploaded receipt:</p>
                   <img
-                    src={`/uploads/${profile.payment_receipt_path}`}
+                    src={profile.payment_receipt_path}
                     alt="Payment receipt"
                     className="max-w-xs rounded-lg border border-teal-200 shadow-sm"
                   />
@@ -712,7 +712,7 @@ export default function StudentDashboard() {
           <div className="flex flex-col items-center mb-4">
             {profile?.student_photo_path ? (
               <img
-                src={`/uploads/${profile.student_photo_path}`}
+                src={profile.student_photo_path}
                 alt="ID Photo"
                 className="w-20 h-20 rounded-full object-cover border-2 border-emerald-200 mb-3"
               />
