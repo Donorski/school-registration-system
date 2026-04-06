@@ -524,7 +524,7 @@ export default function StudentProfile() {
       </div>
 
       {/* Status Banners */}
-      {status === 'pending' && (
+      {isLocked && (
         <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm">
           <Lock size={18} className="shrink-0" />
           <p>Your application is <strong>pending review</strong>. You cannot make changes until the admin reviews it.</p>
