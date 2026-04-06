@@ -460,12 +460,14 @@ export default function StudentProfile() {
       <div className="flex items-center gap-4">
         <div className="relative">
           {path ? (
-            path.endsWith('.pdf') ? (
-              <div className={`w-24 h-24 rounded-xl bg-${badgeColor}-50 border-2 border-${badgeColor}-200 flex flex-col items-center justify-center text-${badgeColor}-600`}>
-                <FileText size={32} /><span className="text-xs mt-1">PDF</span>
-              </div>
+            (path.endsWith('.pdf') || path.includes('/raw/upload/')) ? (
+              <a href={path} target="_blank" rel="noopener noreferrer" className={`w-24 h-24 rounded-xl bg-${badgeColor}-50 border-2 border-${badgeColor}-200 flex flex-col items-center justify-center text-${badgeColor}-600`}>
+                <FileText size={32} /><span className="text-xs mt-1">View PDF</span>
+              </a>
             ) : (
-              <img src={path} alt={label} className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+              <a href={path} target="_blank" rel="noopener noreferrer">
+                <img src={path} alt={label} className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
+              </a>
             )
           ) : (
             <div className="w-24 h-24 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">

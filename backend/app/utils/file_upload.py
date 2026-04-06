@@ -37,12 +37,20 @@ async def _read_and_check_size(file: UploadFile) -> bytes:
     return contents
 
 
+_FORMAT_MAP = {
+    "image/jpeg": ("image", "jpg"),
+    "image/png": ("image", "png"),
+    "application/pdf": ("raw", "pdf"),
+}
+
+
 def _upload_to_cloudinary(contents: bytes, folder: str, content_type: str) -> str:
-    resource_type = "raw" if content_type == "application/pdf" else "image"
+    resource_type, fmt = _FORMAT_MAP.get(content_type, ("image", "jpg"))
     result = cloudinary.uploader.upload(
         io.BytesIO(contents),
         folder=f"school_registration/{folder}",
         resource_type=resource_type,
+        format=fmt,
     )
     return result["secure_url"]
 
