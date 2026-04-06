@@ -5,7 +5,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonListItem } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
 import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment } from '../../services/api';
-import { getErrorMessage } from '../../utils/helpers';
+import { getErrorMessage, getCloudinaryViewUrl } from '../../utils/helpers';
 
 export default function PaymentReview() {
   const [students, setStudents] = useState([]);
@@ -228,7 +228,7 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Last School Grades</p>
                     {studentDetail.grades_path ? (
                       isPdf(studentDetail.grades_path) ? (
-                        <a href={studentDetail.grades_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={getCloudinaryViewUrl(studentDetail.grades_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
@@ -251,7 +251,7 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Voucher</p>
                     {studentDetail.voucher_path ? (
                       isPdf(studentDetail.voucher_path) ? (
-                        <a href={studentDetail.voucher_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={getCloudinaryViewUrl(studentDetail.voucher_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
@@ -275,7 +275,7 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Transfer Credential / Form 137</p>
                       {studentDetail.transfer_credential_path ? (
                         isPdf(studentDetail.transfer_credential_path) ? (
-                          <a href={studentDetail.transfer_credential_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <a href={getCloudinaryViewUrl(studentDetail.transfer_credential_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
                           </a>
@@ -300,7 +300,7 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Good Moral Certificate</p>
                       {studentDetail.good_moral_path ? (
                         isPdf(studentDetail.good_moral_path) ? (
-                          <a href={studentDetail.good_moral_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <a href={getCloudinaryViewUrl(studentDetail.good_moral_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
                           </a>
@@ -324,7 +324,7 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">PSA Birth Certificate</p>
                     {studentDetail.psa_birth_cert_path ? (
                       isPdf(studentDetail.psa_birth_cert_path) ? (
-                        <a href={studentDetail.psa_birth_cert_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={getCloudinaryViewUrl(studentDetail.psa_birth_cert_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>
@@ -347,7 +347,7 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Payment Receipt</p>
                     {studentDetail.payment_receipt_path ? (
                       isPdf(studentDetail.payment_receipt_path) ? (
-                        <a href={studentDetail.payment_receipt_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <a href={getCloudinaryViewUrl(studentDetail.payment_receipt_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
                         </a>

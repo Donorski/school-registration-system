@@ -18,7 +18,7 @@ import {
 
 const SCHOOL_NAME = 'DATABASE TECHNOLOGY COLLEGE';
 const SCHOOL_ADDRESS = 'GUBAT SORSOGON CITY';
-import { getErrorMessage } from '../../utils/helpers';
+import { getErrorMessage, getCloudinaryViewUrl } from '../../utils/helpers';
 
 const STEPS = [
   { id: 1, label: 'Enrollment Type' },
@@ -461,7 +461,7 @@ export default function StudentProfile() {
         <div className="relative">
           {path ? (
             (path.endsWith('.pdf') || path.includes('/raw/upload/')) ? (
-              <a href={path} target="_blank" rel="noopener noreferrer" className={`w-24 h-24 rounded-xl bg-${badgeColor}-50 border-2 border-${badgeColor}-200 flex flex-col items-center justify-center text-${badgeColor}-600`}>
+              <a href={getCloudinaryViewUrl(path)} target="_blank" rel="noopener noreferrer" className={`w-24 h-24 rounded-xl bg-${badgeColor}-50 border-2 border-${badgeColor}-200 flex flex-col items-center justify-center text-${badgeColor}-600`}>
                 <FileText size={32} /><span className="text-xs mt-1">View PDF</span>
               </a>
             ) : (
