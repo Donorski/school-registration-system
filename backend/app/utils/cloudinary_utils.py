@@ -1,7 +1,19 @@
 """Cloudinary delete utilities."""
 
+import logging
+
 import cloudinary
 import cloudinary.uploader
+
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+    api_key=settings.CLOUDINARY_API_KEY,
+    api_secret=settings.CLOUDINARY_API_SECRET,
+)
 
 
 def _public_id_from_url(url: str) -> tuple[str, str]:
@@ -34,15 +46,19 @@ def _public_id_from_url(url: str) -> tuple[str, str]:
 
 
 def delete_cloudinary_file(url: str) -> None:
-    """Delete a single file from Cloudinary by its URL. Silently ignores errors."""
+    """Delete a single file from Cloudinary by its URL."""
     if not url:
         return
     try:
         public_id, resource_type = _public_id_from_url(url)
         if public_id:
-            cloudinary.uploader.destroy(public_id, resource_type=resource_type)
-    except Exception:
-        pass
+            result = cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+            if result.get("result") not in ("ok", "not found"):
+                logger.warning("Cloudinary delete unexpected result for %s: %s", public_id, result)
+        else:
+            logger.warning("Could not extract public_id from Cloudinary URL: %s", url)
+    except Exception as e:
+        logger.error("Failed to delete Cloudinary file %s: %s", url, e)
 
 
 def delete_student_files(student) -> None:
