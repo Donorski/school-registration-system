@@ -1,10 +1,11 @@
+
 """Notification model for in-app notifications."""
 
 import enum
 from datetime import datetime, timezone
 
 from sqlalchemy import String, Text, Boolean, Enum, DateTime, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 
 from app.database import Base
 
@@ -36,4 +37,4 @@ class Notification(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user = relationship("User", backref="notifications")
+    user = relationship("User", backref=backref("notifications", cascade="all, delete-orphan"))

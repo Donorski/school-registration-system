@@ -268,6 +268,12 @@ def delete_student(
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
+    if student.status == StudentStatus.DENIED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete a denied student. Denied students may reapply for enrollment.",
+        )
+
     user = student.user
     student_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"
     create_audit_log(db, _admin, "STUDENT_DELETED", target_name=student_label)
