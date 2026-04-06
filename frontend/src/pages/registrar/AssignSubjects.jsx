@@ -203,7 +203,7 @@ export default function AssignSubjects() {
     }
   };
 
-  if (loading && students.length === 0) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
+  if (loading && students.length === 0) return <DashboardLayout><div className="flex items-center justify-center py-24"><Loader2 size={36} className="animate-spin text-emerald-600" /></div></DashboardLayout>;
 
   return (
     <DashboardLayout>
