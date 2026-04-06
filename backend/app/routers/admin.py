@@ -372,12 +372,11 @@ def get_student_documents(
 
     documents = student.documents_path or []
     result = []
-    for doc_path in documents:
-        full_path = os.path.join(settings.UPLOAD_DIR, doc_path)
+    for doc_url in documents:
         result.append({
-            "path": doc_path,
-            "exists": os.path.exists(full_path),
-            "download_url": f"/uploads/{doc_path}",
+            "path": doc_url,
+            "exists": True,
+            "download_url": doc_url,
         })
     return {"student_id": student_id, "documents": result}
 
