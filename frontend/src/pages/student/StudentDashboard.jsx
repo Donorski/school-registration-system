@@ -384,12 +384,7 @@ function NextStepsGuide({ profile, subjects, calendar }) {
       action: null,
     };
   } else if (status === 'approved' && paymentStatus === 'pending_verification') {
-    step = {
-      color: 'blue',
-      title: 'Payment submitted — awaiting verification',
-      desc: 'The registrar is reviewing your payment. This usually takes 1–2 business days.',
-      action: null,
-    };
+    return null;
   } else if (status === 'approved' && paymentStatus === 'verified' && !hasSubjects) {
     step = {
       color: 'green',
@@ -698,9 +693,9 @@ export default function StudentDashboard() {
           <div className="flex items-start gap-3">
             <Clock size={20} className="text-teal-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-teal-800">Payment submitted — waiting for verification</h3>
+              <h3 className="font-semibold text-teal-800">Payment submitted — awaiting registrar verification</h3>
               <p className="text-sm text-teal-700 mt-1">
-                The registrar will review your payment shortly.
+                Occasionally check your account for updates on your payment status.
               </p>
               {profile?.payment_receipt_path && (
                 <div className="mt-3">
