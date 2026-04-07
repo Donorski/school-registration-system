@@ -660,7 +660,9 @@ export default function StudentDashboard() {
                 <>
                   <h3 className="font-semibold text-amber-800">You are accepted! Please pay your tuition fee</h3>
                   <p className="text-sm text-amber-700 mt-1">
-                    You may upload a photo of your payment receipt, or submit without one for the registrar to verify manually.
+                    {profile?.school_type === 'PRIVATE'
+                      ? 'You are required to upload a photo of your payment receipt to proceed.'
+                      : 'You may upload a photo of your payment receipt, or submit without one for the registrar to verify manually.'}
                   </p>
                 </>
               )}
@@ -680,7 +682,7 @@ export default function StudentDashboard() {
                   {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                   {uploading ? 'Uploading...' : 'Upload Payment Receipt'}
                 </button>
-                {!profile?.payment_rejection_reason && (
+                {!profile?.payment_rejection_reason && profile?.school_type !== 'PRIVATE' && (
                   <button
                     onClick={handleSkipReceipt}
                     disabled={uploading}

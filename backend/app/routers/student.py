@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth.dependencies import require_role
 from app.models.user import User, UserRole
-from app.models.student import Student, StudentStatus
+from app.models.student import Student, StudentStatus, SchoolType
 from app.schemas.student import StudentUpdate, StudentResponse, StudentStatusResponse, EnrollmentRecordResponse
 from app.models.enrollment_record import EnrollmentRecord
 from app.schemas.subject import EnrolledSubjectResponse
@@ -338,6 +338,11 @@ def submit_payment_without_receipt(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment is already submitted or verified",
+        )
+    if student.school_type == SchoolType.PRIVATE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Students from private schools are required to upload a payment receipt.",
         )
     student.payment_status = "pending_verification"
     student.updated_at = datetime.now(timezone.utc)
