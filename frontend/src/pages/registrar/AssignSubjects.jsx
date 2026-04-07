@@ -122,7 +122,7 @@ export default function AssignSubjects() {
       if (student.grade_level_to_enroll) params.grade_level = student.grade_level_to_enroll;
       if (student.semester) params.semester = student.semester;
       const subjectsRes = await getSubjects(params);
-      setSubjects(subjectsRes.data);
+      setSubjects(subjectsRes.data.subjects || []);
       if (window.innerWidth < 1024) {
         setTimeout(() => subjectsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       }
@@ -141,7 +141,7 @@ export default function AssignSubjects() {
       getSubjects(params),
       getStudentEnrolledSubjects(selectedStudent),
     ]);
-    setSubjects(subjectsRes.data);
+    setSubjects(subjectsRes.data.subjects || []);
     setEnrolledSubjects(enrolledRes.data.subject_ids || []);
   };
 
