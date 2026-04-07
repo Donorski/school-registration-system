@@ -25,7 +25,7 @@ from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
 from app.models.enrollment_record import EnrollmentRecord
 from app.utils.audit_log import create_audit_log
-from app.utils.cloudinary_utils import delete_cloudinary_file
+from app.utils.cloudinary_utils import delete_cloudinary_file, delete_student_files, clear_student_file_fields
 
 router = APIRouter(prefix="/api/registrar", tags=["Registrar"])
 
@@ -231,9 +231,11 @@ def verify_payment(
     student.payment_status = "verified"
     student.payment_verified_at = datetime.now(timezone.utc)
 
-    # Delete receipt from Cloudinary — no longer needed after verification
+    # Delete receipt and all enrollment documents from Cloudinary — no longer needed after verification
     delete_cloudinary_file(student.payment_receipt_path)
     student.payment_receipt_path = None
+    delete_student_files(student)
+    clear_student_file_fields(student)
 
     # Auto-assign student number on payment verification
     if not student.student_number:

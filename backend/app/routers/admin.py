@@ -228,10 +228,6 @@ def approve_student(
     student.status = StudentStatus.APPROVED
     student.updated_at = datetime.now(timezone.utc)
 
-    # Delete enrollment documents from Cloudinary — no longer needed after approval
-    delete_student_files(student)
-    clear_student_file_fields(student)
-
     # Notify student
     create_notification(
         db, student.user_id,
