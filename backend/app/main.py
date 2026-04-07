@@ -1,5 +1,8 @@
 """FastAPI application entry point."""
 
+import subprocess
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,6 +13,13 @@ from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.routers import auth, student, admin, registrar, utils, notification
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
+    yield
+
+
 # Rate limiter instance (shared across routers)
 limiter = Limiter(key_func=get_remote_address)
 
@@ -17,6 +27,7 @@ app = FastAPI(
     title="School Registration System API",
     description="Backend API for student registration, enrollment, and management.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
