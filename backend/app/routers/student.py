@@ -138,6 +138,8 @@ def update_my_profile(
 
     # Detect first meaningful submission (first_name being set for the first time)
     is_first_submission = not student.first_name and bool(update_data.get("first_name"))
+    # Detect resubmission after denial
+    is_resubmission = student.status == StudentStatus.DENIED and bool(student.first_name)
 
     # Auto-calculate age from birthday
     if "birthday" in update_data and update_data["birthday"] is not None:
@@ -148,20 +150,28 @@ def update_my_profile(
 
     student.updated_at = datetime.now(timezone.utc)
 
-    # Notify all admins on first form submission
-    if is_first_submission:
+    # Reset denied student back to pending on resubmission
+    if is_resubmission:
+        student.status = StudentStatus.PENDING
+        student.denial_reason = None
+
+    # Notify all admins on first submission or resubmission after denial
+    if is_first_submission or is_resubmission:
         admins = db.query(User).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
-        first = update_data.get("first_name", "")
-        last = update_data.get("last_name", "")
+        first = update_data.get("first_name", "") or student.first_name or ""
+        last = update_data.get("last_name", "") or student.last_name or ""
+        if is_resubmission:
+            notif_title = "Application Resubmitted"
+            notif_body = f"{first} {last} has resubmitted their application after denial."
+            audit_action = "APPLICATION_RESUBMITTED"
+        else:
+            notif_title = "New Form Submitted"
+            notif_body = f"A new student registration form has been submitted by {first} {last}."
+            audit_action = "APPLICATION_SUBMITTED"
         for admin in admins:
-            create_notification(
-                db, admin.id,
-                "New Form Submitted",
-                f"A new student registration form has been submitted by {first} {last}.",
-                NotificationType.NEW_FORM_SUBMITTED,
-            )
+            create_notification(db, admin.id, notif_title, notif_body, NotificationType.NEW_FORM_SUBMITTED)
         submit_label = f"{first} {last}".strip() or current_user.email
-        create_audit_log(db, current_user, "APPLICATION_SUBMITTED", target_name=submit_label)
+        create_audit_log(db, current_user, audit_action, target_name=submit_label)
 
     db.commit()
     db.refresh(student)
