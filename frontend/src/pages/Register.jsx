@@ -255,14 +255,16 @@ export default function Register() {
               {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
 
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ''}
-              onSuccess={(token) => setCaptchaToken(token)}
-              onExpire={() => setCaptchaToken('')}
-              onError={() => setCaptchaToken('')}
-              options={{ theme: 'light' }}
-            />
+            <div className="flex justify-center">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ''}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken('')}
+                onError={() => setCaptchaToken('')}
+                options={{ theme: 'light' }}
+              />
+            </div>
 
             <button
               type="submit"
