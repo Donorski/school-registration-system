@@ -389,7 +389,7 @@ export default function PaymentReview() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <LoadingSpinner />
+              <Loader2 size={28} className="animate-spin text-emerald-600 mx-auto" />
             </div>
           )}
         </div>
