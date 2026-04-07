@@ -3,8 +3,8 @@
 import logging
 from io import BytesIO
 from datetime import datetime
+from pathlib import Path
 
-import requests as _http
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
@@ -287,7 +287,6 @@ def build_enrollment_report(
     by_sex: dict | None = None,
     by_payment: dict | None = None,
     school_name: str = "",
-    school_logo_url: str | None = None,
 ) -> bytes:
     buffer = BytesIO()
 
@@ -341,15 +340,13 @@ def build_enrollment_report(
 
     # ── Reusable blocks ───────────────────────────────────────────────
 
-    # Try to download the school logo once for reuse on both pages
+    # Load the bundled school logo (logo.png next to this file's static folder)
+    _logo_path = Path(__file__).parent.parent / "static" / "logo.png"
     _logo_img_data: BytesIO | None = None
-    if school_logo_url:
-        try:
-            resp = _http.get(school_logo_url, timeout=10)
-            resp.raise_for_status()
-            _logo_img_data = BytesIO(resp.content)
-        except Exception as exc:
-            logger.warning("Could not fetch school logo: %s", exc)
+    if _logo_path.exists():
+        _logo_img_data = BytesIO(_logo_path.read_bytes())
+    else:
+        logger.warning("School logo not found at %s", _logo_path)
 
     LOGO_SIZE = 0.55 * inch   # square logo
 

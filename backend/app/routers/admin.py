@@ -860,7 +860,6 @@ def generate_enrollment_report(
         school_year=school_year,
         semester=semester,
         school_name=school_cfg.school_name or "",
-        school_logo_url=school_cfg.school_logo_url,
         total_count=total_count,
         pending_count=pending_count,
         approved_count=approved_count,
