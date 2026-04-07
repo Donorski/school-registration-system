@@ -418,8 +418,8 @@ def build_enrollment_report(
 
     # ── Summary table (left) + Side panel (right) ─────────────────────
     TABLE_GAP = 0.3 * inch          # visual gap between the two tables
-    LEFT_W    = 4.0 * inch
-    RIGHT_W   = PAGE_W - LEFT_W - TABLE_GAP
+    LEFT_W    = (PAGE_W - TABLE_GAP) / 2   # equal width for both tables
+    RIGHT_W   = LEFT_W
 
     # Shared row-height spec so both tables are always the same height
     HEADER_H = 22   # pts — header row
@@ -450,7 +450,7 @@ def build_enrollment_report(
     # col widths must sum to LEFT_W
     left_table = Table(
         summary_data,
-        colWidths=[2.15*inch, 0.85*inch, 1.0*inch],
+        colWidths=[1.8*inch, 0.7*inch, 0.85*inch],
         rowHeights=TABLE_ROW_HEIGHTS,
     )
     left_table.setStyle(TableStyle([
@@ -500,7 +500,7 @@ def build_enrollment_report(
     # col widths must sum to RIGHT_W
     right_table = Table(
         side_data,
-        colWidths=[1.4*inch, 0.7*inch, 0.6*inch],
+        colWidths=[1.75*inch, 0.85*inch, 0.75*inch],
         rowHeights=TABLE_ROW_HEIGHTS,
     )
     right_table.setStyle(TableStyle([
