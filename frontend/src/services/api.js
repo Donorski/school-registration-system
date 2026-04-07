@@ -94,7 +94,6 @@ export const approveStudent = (id, data = {}) => api.put(`/admin/students/${id}/
 export const denyStudent = (id, reason) => api.put(`/admin/students/${id}/deny`, { reason: reason || null });
 export const deleteStudent = (id) => api.delete(`/admin/students/${id}`);
 export const downloadStudentFiles = (id) => api.get(`/admin/students/${id}/download-files`, { responseType: 'blob' });
-export const downloadStudentFiles = (id) => api.get(`/admin/students/${id}/download-files`, { responseType: 'blob' });
 export const getDashboardStats = () => api.get('/admin/dashboard/stats');
 export const getAccounts = (params) => api.get('/admin/accounts', { params });
 export const createAccount = (data) => api.post('/admin/accounts', data);
