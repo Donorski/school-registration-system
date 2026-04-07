@@ -352,6 +352,13 @@ function NextStepsGuide({ profile, subjects, calendar }) {
       desc: 'Complete your enrollment application to get started. Make sure all required fields and documents are provided.',
       action: { label: 'Go to Application Form', to: '/student/profile' },
     };
+  } else if (status === 'pending' && !profile?.grade_level_to_enroll) {
+    step = {
+      color: 'emerald',
+      title: 'Complete your enrollment application',
+      desc: 'Your basic info is saved. Please complete the rest of your enrollment application including your grade level, strand, and required documents.',
+      action: { label: 'Continue Application', to: '/student/profile' },
+    };
   } else if (status === 'pending') {
     step = {
       color: 'amber',
