@@ -6,7 +6,6 @@ import zipfile
 import os
 from datetime import datetime, timezone
 
-import requests as http_requests
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -30,7 +29,7 @@ from app.models.notification import NotificationType
 from app.utils.notifications import create_notification
 from app.models.enrollment_record import EnrollmentRecord
 from app.utils.audit_log import create_audit_log
-from app.utils.cloudinary_utils import delete_cloudinary_file, delete_student_files, clear_student_file_fields
+from app.utils.cloudinary_utils import delete_cloudinary_file, delete_student_files, clear_student_file_fields, download_cloudinary_file
 
 router = APIRouter(prefix="/api/registrar", tags=["Registrar"])
 
@@ -371,14 +370,12 @@ def download_student_files(
         for label, url in file_entries:
             if not url:
                 continue
-            try:
-                resp = http_requests.get(url, timeout=15)
-                resp.raise_for_status()
-                filename = url.split("?")[0].split("/")[-1]
-                ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
-                zf.writestr(f"{folder_name}/{label}.{ext}", resp.content)
-            except Exception:
+            content = download_cloudinary_file(url)
+            if not content:
                 continue
+            filename = url.split("?")[0].split("/")[-1]
+            ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+            zf.writestr(f"{folder_name}/{label}.{ext}", content)
 
     zip_buffer.seek(0)
     return StreamingResponse(

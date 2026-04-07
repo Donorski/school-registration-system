@@ -32,7 +32,7 @@ from app.utils.report_pdf import build_enrollment_report
 from app.models.audit_log import AuditLog
 from app.models.student_subject import StudentSubject
 from app.models.announcement import Announcement
-from app.utils.cloudinary_utils import delete_student_files, clear_student_file_fields
+from app.utils.cloudinary_utils import delete_student_files, clear_student_file_fields, download_cloudinary_file
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -180,14 +180,12 @@ def download_student_files(
         for label, url in file_entries:
             if not url:
                 continue
-            try:
-                resp = http_requests.get(url, timeout=15)
-                resp.raise_for_status()
-                filename = url.split("?")[0].split("/")[-1]
-                ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
-                zf.writestr(f"{folder_name}/{label}.{ext}", resp.content)
-            except Exception:
+            content = download_cloudinary_file(url)
+            if not content:
                 continue
+            filename = url.split("?")[0].split("/")[-1]
+            ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+            zf.writestr(f"{folder_name}/{label}.{ext}", content)
 
     zip_buffer.seek(0)
     return StreamingResponse(

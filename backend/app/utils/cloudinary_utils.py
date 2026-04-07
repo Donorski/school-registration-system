@@ -4,6 +4,8 @@ import logging
 
 import cloudinary
 import cloudinary.uploader
+import cloudinary.utils
+import requests as _http
 
 from app.config import settings
 
@@ -59,6 +61,28 @@ def delete_cloudinary_file(url: str) -> None:
             logger.warning("Could not extract public_id from Cloudinary URL: %s", url)
     except Exception as e:
         logger.error("Failed to delete Cloudinary file %s: %s", url, e)
+
+
+def download_cloudinary_file(url: str) -> bytes | None:
+    """Download a file from Cloudinary by URL, handling both image and raw resource types."""
+    if not url:
+        return None
+    try:
+        public_id, resource_type = _public_id_from_url(url)
+        if not public_id:
+            return None
+        # Generate a signed URL so raw/private files are accessible
+        signed_url, _ = cloudinary.utils.cloudinary_url(
+            public_id,
+            resource_type=resource_type,
+            sign_url=True,
+        )
+        resp = _http.get(signed_url, timeout=60, allow_redirects=True)
+        resp.raise_for_status()
+        return resp.content
+    except Exception as e:
+        logger.error("Failed to download Cloudinary file %s: %s", url, e)
+        return None
 
 
 def delete_student_files(student) -> None:
