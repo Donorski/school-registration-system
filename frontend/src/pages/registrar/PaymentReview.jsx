@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Search, User, CheckCircle, XCircle, Loader2, FileText } from 'lucide-react';
+import { Search, User, CheckCircle, XCircle, Loader2, FileText, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonListItem } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment } from '../../services/api';
+import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment, downloadStudentFilesRegistrar } from '../../services/api';
 import { getErrorMessage, getCloudinaryViewUrl } from '../../utils/helpers';
 
 export default function PaymentReview() {
@@ -17,6 +17,29 @@ export default function PaymentReview() {
   const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadFiles = async () => {
+    if (!selectedStudent || !studentDetail) return;
+    setDownloading(true);
+    try {
+      const res = await downloadStudentFilesRegistrar(selectedStudent);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/zip' }));
+      const name = `${studentDetail.first_name || ''}_${studentDetail.last_name || ''}_files`.trim().replace(/\s+/g, '_');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${name}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Files downloaded');
+    } catch {
+      toast.error('Failed to download files');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -368,7 +391,7 @@ export default function PaymentReview() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => setShowVerifyConfirm(true)}
                   disabled={actionLoading}
@@ -384,6 +407,14 @@ export default function PaymentReview() {
                 >
                   {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
                   Reject Receipt
+                </button>
+                <button
+                  onClick={handleDownloadFiles}
+                  disabled={downloading}
+                  className="flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium px-5 py-2.5 rounded-lg transition disabled:opacity-50"
+                >
+                  {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                  {downloading ? 'Downloading...' : 'Download Files'}
                 </button>
               </div>
             </div>

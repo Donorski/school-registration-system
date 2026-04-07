@@ -1,9 +1,14 @@
 """Registrar endpoints — subject CRUD, enrollment management, payment verification."""
 
+import io
+import re
+import zipfile
 import os
 from datetime import datetime, timezone
 
+import requests as http_requests
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -333,6 +338,54 @@ def get_student_enrollment_history(
     return student.enrollment_records
 
 
+
+
+@router.get("/students/{student_id}/download-files")
+def download_student_files(
+    student_id: int,
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Download all uploaded files for a student as a ZIP archive."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student_name = re.sub(r"[^\w\s-]", "", f"{student.first_name or ''} {student.last_name or ''}".strip()) or f"student_{student_id}"
+    folder_name = student_name.replace(" ", "_")
+
+    file_entries = [
+        ("photo", student.student_photo_path),
+        ("grades", student.grades_path),
+        ("voucher", student.voucher_path),
+        ("psa_birth_cert", student.psa_birth_cert_path),
+        ("transfer_credential", student.transfer_credential_path),
+        ("good_moral", student.good_moral_path),
+        ("payment_receipt", student.payment_receipt_path),
+    ]
+    for i, url in enumerate(student.documents_path or []):
+        file_entries.append((f"document_{i + 1}", url))
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for label, url in file_entries:
+            if not url:
+                continue
+            try:
+                resp = http_requests.get(url, timeout=15)
+                resp.raise_for_status()
+                filename = url.split("?")[0].split("/")[-1]
+                ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+                zf.writestr(f"{folder_name}/{label}.{ext}", resp.content)
+            except Exception:
+                continue
+
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{folder_name}_files.zip"'},
+    )
 
 
 # --- Subject CRUD ---
