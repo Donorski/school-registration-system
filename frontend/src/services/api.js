@@ -139,6 +139,12 @@ export const generateEnrollmentReport = (params) =>
 // --- Academic Calendar ---
 export const getAcademicCalendar = () => api.get('/admin/academic-calendar');
 export const updateAcademicCalendar = (data) => api.put('/admin/academic-calendar', data);
+
+// --- School Settings ---
+export const getSchoolSettings = () => api.get('/admin/school-settings');
+export const updateSchoolSettings = (data) => api.put('/admin/school-settings', data);
+export const uploadSchoolLogo = (formData) => api.post('/admin/school-settings/logo', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const deleteSchoolLogo = () => api.delete('/admin/school-settings/logo');
 export const getEnrollmentStatus = () => api.get('/utils/enrollment-status');
 
 // --- Utils ---

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Trash2, Search, ChevronLeft, ChevronRight, Plus, KeyRound, CalendarDays, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Trash2, Search, ChevronLeft, ChevronRight, Plus, KeyRound, CalendarDays, ToggleLeft, ToggleRight, School, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getAccounts, createAccount, deleteAccount, resetAccountPassword, getAcademicCalendar, updateAcademicCalendar } from '../../services/api';
+import { getAccounts, createAccount, deleteAccount, resetAccountPassword, getAcademicCalendar, updateAcademicCalendar, getSchoolSettings, updateSchoolSettings, uploadSchoolLogo, deleteSchoolLogo } from '../../services/api';
 import { formatDate, getErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -43,6 +43,13 @@ export default function Settings() {
   const [resetting, setResetting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const perPage = 10;
+
+  // School Settings
+  const [schoolLoading, setSchoolLoading] = useState(true);
+  const [schoolSaving, setSchoolSaving] = useState(false);
+  const [schoolLogoUploading, setSchoolLogoUploading] = useState(false);
+  const [schoolSettings, setSchoolSettings] = useState({ school_name: '', school_logo_url: null });
+  const logoInputRef = useRef(null);
 
   // Academic Calendar
   const [calendarLoading, setCalendarLoading] = useState(true);
@@ -88,6 +95,59 @@ export default function Settings() {
       })
       .finally(() => setCalendarLoading(false));
   }, []);
+
+  useEffect(() => {
+    setSchoolLoading(true);
+    getSchoolSettings()
+      .then((res) => setSchoolSettings(res.data))
+      .catch(() => {})
+      .finally(() => setSchoolLoading(false));
+  }, []);
+
+  const handleSchoolSave = async (e) => {
+    e.preventDefault();
+    setSchoolSaving(true);
+    try {
+      const res = await updateSchoolSettings({ school_name: schoolSettings.school_name });
+      setSchoolSettings(res.data);
+      toast.success('School name saved');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSchoolSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSchoolLogoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('logo', file);
+      const res = await uploadSchoolLogo(fd);
+      setSchoolSettings(res.data);
+      toast.success('Logo uploaded');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSchoolLogoUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    setSchoolLogoUploading(true);
+    try {
+      const res = await deleteSchoolLogo();
+      setSchoolSettings(res.data);
+      toast.success('Logo removed');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSchoolLogoUploading(false);
+    }
+  };
 
   const handleCalendarSave = async (e) => {
     e.preventDefault();
@@ -178,6 +238,72 @@ export default function Settings() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
         <p className="text-gray-500">Manage academic calendar and user accounts</p>
+      </div>
+
+      {/* School Settings */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <School size={20} className="text-emerald-600" />
+          <h2 className="text-lg font-semibold text-gray-800">School Profile</h2>
+        </div>
+        {schoolLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            {/* Logo */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+                {schoolSettings.school_logo_url ? (
+                  <img src={schoolSettings.school_logo_url} alt="School logo" className="w-full h-full object-contain" />
+                ) : (
+                  <School size={36} className="text-gray-300" />
+                )}
+              </div>
+              <input ref={logoInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleLogoUpload} />
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={schoolLogoUploading}
+                className="flex items-center gap-1 text-xs text-emerald-700 border border-emerald-300 rounded px-2 py-1 hover:bg-emerald-50 disabled:opacity-50"
+              >
+                <Upload size={12} /> {schoolLogoUploading ? 'Uploading…' : 'Upload Logo'}
+              </button>
+              {schoolSettings.school_logo_url && (
+                <button
+                  type="button"
+                  onClick={handleLogoDelete}
+                  disabled={schoolLogoUploading}
+                  className="flex items-center gap-1 text-xs text-red-600 border border-red-200 rounded px-2 py-1 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <X size={12} /> Remove
+                </button>
+              )}
+            </div>
+
+            {/* School Name */}
+            <form onSubmit={handleSchoolSave} className="flex-1 flex flex-col gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+                <input
+                  type="text"
+                  value={schoolSettings.school_name}
+                  onChange={(e) => setSchoolSettings((s) => ({ ...s, school_name: e.target.value }))}
+                  placeholder="e.g. Mabini National High School"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <button
+                  type="submit"
+                  disabled={schoolSaving}
+                  className="bg-emerald-600 text-white text-sm rounded-lg px-4 py-2 hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {schoolSaving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Academic Calendar */}

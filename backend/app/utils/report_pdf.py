@@ -1,20 +1,24 @@
 """PDF report generation for enrollment data using reportlab."""
 
+import logging
 from io import BytesIO
 from datetime import datetime
 
+import requests as _http
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak,
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak, Image,
 )
 from reportlab.graphics.shapes import Drawing, String, Rect, Group
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart, HorizontalBarChart
 from reportlab.graphics.charts.legends import Legend
+
+logger = logging.getLogger(__name__)
 
 # ── Brand colours ─────────────────────────────────────────────────────
 HEADER_BG  = colors.HexColor("#065f46")
@@ -282,6 +286,8 @@ def build_enrollment_report(
     by_enrollment_type: dict | None = None,
     by_sex: dict | None = None,
     by_payment: dict | None = None,
+    school_name: str = "",
+    school_logo_url: str | None = None,
 ) -> bytes:
     buffer = BytesIO()
 
@@ -335,10 +341,58 @@ def build_enrollment_report(
 
     # ── Reusable blocks ───────────────────────────────────────────────
 
+    # Try to download the school logo once for reuse on both pages
+    _logo_img_data: BytesIO | None = None
+    if school_logo_url:
+        try:
+            resp = _http.get(school_logo_url, timeout=10)
+            resp.raise_for_status()
+            _logo_img_data = BytesIO(resp.content)
+        except Exception as exc:
+            logger.warning("Could not fetch school logo: %s", exc)
+
+    LOGO_SIZE = 0.55 * inch   # square logo
+
     def _letterhead():
         story.append(Spacer(1, 2))
         story.append(HRFlowable(width="100%", thickness=2, color=ACCENT, spaceAfter=5))
-        story.append(Paragraph("STUDENT ENROLLMENT REPORT", title_style))
+
+        # School identity row: logo (optional) + school name + report title
+        if _logo_img_data or school_name:
+            _logo_img_data and _logo_img_data.seek(0)
+            logo_cell = Image(_logo_img_data, width=LOGO_SIZE, height=LOGO_SIZE) \
+                if _logo_img_data else Spacer(LOGO_SIZE, LOGO_SIZE)
+
+            school_name_style = ParagraphStyle(
+                "SchoolName", parent=styles["Normal"],
+                fontSize=11, fontName="Helvetica-Bold",
+                textColor=HEADER_BG, alignment=TA_CENTER, leading=14,
+            )
+            report_title_style = ParagraphStyle(
+                "ReportTitle2", parent=styles["Normal"],
+                fontSize=8, fontName="Helvetica",
+                textColor=TEXT_MUTED, alignment=TA_CENTER,
+            )
+            name_block = [
+                Paragraph(school_name, school_name_style) if school_name else Spacer(1, 14),
+                Paragraph("STUDENT ENROLLMENT REPORT", report_title_style),
+            ]
+            identity_table = Table(
+                [[logo_cell, name_block]],
+                colWidths=[LOGO_SIZE + 6, PAGE_W - LOGO_SIZE - 6],
+            )
+            identity_table.setStyle(TableStyle([
+                ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+                ("TOPPADDING",    (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING",  (0, 0), (0, -1),  8),
+            ]))
+            story.append(identity_table)
+        else:
+            story.append(Paragraph("STUDENT ENROLLMENT REPORT", title_style))
+
         story.append(HRFlowable(width="100%", thickness=2, color=ACCENT,
                                 spaceBefore=5, spaceAfter=8))
 

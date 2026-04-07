@@ -9,7 +9,7 @@ from io import BytesIO
 from typing import Optional
 
 import requests as http_requests
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -32,7 +32,9 @@ from app.utils.report_pdf import build_enrollment_report
 from app.models.audit_log import AuditLog
 from app.models.student_subject import StudentSubject
 from app.models.announcement import Announcement
-from app.utils.cloudinary_utils import delete_student_files, clear_student_file_fields, download_cloudinary_file
+from app.utils.cloudinary_utils import delete_student_files, clear_student_file_fields, download_cloudinary_file, delete_cloudinary_file
+from app.utils.file_upload import _upload_to_cloudinary, _validate_file, _read_and_check_size, ALLOWED_PHOTO_TYPES
+from app.models.school_settings import SchoolSettings
 
 
 # ── Academic Calendar Schemas ────────────────────────────────────────
@@ -57,6 +59,18 @@ class AcademicCalendarResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SchoolSettingsUpdate(BaseModel):
+    school_name: str
+
+
+class SchoolSettingsResponse(BaseModel):
+    school_name: str
+    school_logo_url: str | None
+
+    class Config:
+        from_attributes = True
+
 
 class AuditLogResponse(BaseModel):
     id: int
@@ -685,6 +699,72 @@ def list_audit_logs(
     return AuditLogListResponse(logs=logs, total=total, page=page, per_page=per_page)
 
 
+# ── School Settings ───────────────────────────────────────────────────
+
+
+def _get_or_create_settings(db: Session) -> SchoolSettings:
+    row = db.query(SchoolSettings).filter(SchoolSettings.id == 1).first()
+    if not row:
+        row = SchoolSettings(id=1, school_name="")
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return row
+
+
+@router.get("/school-settings", response_model=SchoolSettingsResponse)
+def get_school_settings(
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    return _get_or_create_settings(db)
+
+
+@router.put("/school-settings", response_model=SchoolSettingsResponse)
+def update_school_settings(
+    payload: SchoolSettingsUpdate,
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    row = _get_or_create_settings(db)
+    row.school_name = payload.school_name.strip()
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.post("/school-settings/logo", response_model=SchoolSettingsResponse)
+async def upload_school_logo(
+    logo: UploadFile = File(...),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    _validate_file(logo, ALLOWED_PHOTO_TYPES)
+    contents = await _read_and_check_size(logo)
+    row = _get_or_create_settings(db)
+    # Delete old logo from Cloudinary if exists
+    if row.school_logo_url:
+        delete_cloudinary_file(row.school_logo_url)
+    row.school_logo_url = _upload_to_cloudinary(contents, "school_logo", logo.content_type)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.delete("/school-settings/logo", response_model=SchoolSettingsResponse)
+def delete_school_logo(
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    row = _get_or_create_settings(db)
+    if row.school_logo_url:
+        delete_cloudinary_file(row.school_logo_url)
+        row.school_logo_url = None
+        db.commit()
+        db.refresh(row)
+    return row
+
+
 # ── Reports ───────────────────────────────────────────────────────────
 
 
@@ -773,10 +853,14 @@ def generate_enrollment_report(
 
     enrolled_students = enrolled_q.order_by(Student.last_name, Student.first_name).all()
 
+    school_cfg = _get_or_create_settings(db)
+
     pdf_bytes = build_enrollment_report(
         students=enrolled_students,
         school_year=school_year,
         semester=semester,
+        school_name=school_cfg.school_name or "",
+        school_logo_url=school_cfg.school_logo_url,
         total_count=total_count,
         pending_count=pending_count,
         approved_count=approved_count,
