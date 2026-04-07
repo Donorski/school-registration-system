@@ -82,6 +82,8 @@ export const uploadPaymentReceipt = (formData) =>
   api.post('/students/me/payment-receipt', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+export const submitPaymentWithoutReceipt = () =>
+  api.post('/students/me/payment-submit');
 
 // --- Admin ---
 export const getAdminStudents = (params) => api.get('/admin/students', { params });

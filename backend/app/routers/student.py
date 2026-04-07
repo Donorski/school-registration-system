@@ -322,6 +322,45 @@ async def upload_payment_receipt(
     return _student_to_response(student, current_user.email)
 
 
+@router.post("/me/payment-submit", response_model=StudentResponse)
+def submit_payment_without_receipt(
+    current_user: User = Depends(require_role(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    """Submit for payment verification without uploading a receipt. Only approved unpaid students."""
+    student = _get_student_or_404(current_user, db)
+    if student.status != StudentStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only approved students can submit for payment verification",
+        )
+    if student.payment_status != "unpaid":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment is already submitted or verified",
+        )
+    student.payment_status = "pending_verification"
+    student.updated_at = datetime.now(timezone.utc)
+
+    # Notify all registrars
+    registrars = db.query(User).filter(User.role == UserRole.REGISTRAR, User.is_active == True).all()
+    for reg in registrars:
+        create_notification(
+            db, reg.id,
+            "Payment Pending Verification",
+            f"Student {student.first_name or ''} {student.last_name or ''} ({student.student_number}) submitted for payment verification without a receipt.",
+            NotificationType.NEW_RECEIPT_UPLOADED,
+        )
+
+    receipt_label = f"{student.first_name or ''} {student.last_name or ''}".strip() or current_user.email
+    if student.student_number:
+        receipt_label = f"{receipt_label} ({student.student_number})"
+    create_audit_log(db, current_user, "PAYMENT_SUBMITTED_NO_RECEIPT", target_name=receipt_label)
+    db.commit()
+    db.refresh(student)
+    return _student_to_response(student, current_user.email)
+
+
 @router.get("/me/subjects", response_model=list[EnrolledSubjectResponse])
 def get_my_subjects(
     current_user: User = Depends(require_role(UserRole.STUDENT)),

@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
-import { getMyProfile, getMySubjects, uploadPaymentReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile } from '../../services/api';
+import { getMyProfile, getMySubjects, uploadPaymentReceipt, submitPaymentWithoutReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -369,11 +369,11 @@ function NextStepsGuide({ profile, subjects, calendar }) {
   } else if (status === 'approved' && paymentStatus === 'unpaid') {
     step = {
       color: 'amber',
-      title: 'Pay your tuition fee and upload your receipt',
+      title: 'Pay your tuition fee',
       desc: (
         <span>
-          Your application has been approved! Pay your tuition at the school cashier or via the designated payment channel,
-          then upload your payment receipt below.
+          Your application has been approved! Pay your tuition at the school cashier or via the designated payment channel.
+          You may optionally upload your payment receipt below, or submit without one for manual verification.
           {deadline && (
             <span className="block mt-1.5 font-medium text-amber-800">
               Enrollment deadline: {deadline}
@@ -386,8 +386,8 @@ function NextStepsGuide({ profile, subjects, calendar }) {
   } else if (status === 'approved' && paymentStatus === 'pending_verification') {
     step = {
       color: 'blue',
-      title: 'Receipt submitted — awaiting verification',
-      desc: 'The registrar is reviewing your payment receipt. This usually takes 1–2 business days.',
+      title: 'Payment submitted — awaiting verification',
+      desc: 'The registrar is reviewing your payment. This usually takes 1–2 business days.',
       action: null,
     };
   } else if (status === 'approved' && paymentStatus === 'verified' && !hasSubjects) {
@@ -489,7 +489,7 @@ function PaymentInfoCard({ calendar }) {
             <p className="text-xs font-medium text-gray-600">Where to pay</p>
             <p className="text-xs text-gray-500 mt-0.5">
               Proceed to the <span className="font-medium text-gray-700">School Cashier</span> during office hours (Mon–Fri, 8:00 AM – 5:00 PM).
-              Keep your official receipt — you will need to upload a clear photo as proof of payment.
+              Keep your official receipt — you may upload a photo as proof of payment, or submit without one for manual verification.
             </p>
           </div>
         </div>
@@ -576,6 +576,19 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleSkipReceipt = async () => {
+    setUploading(true);
+    try {
+      const res = await submitPaymentWithoutReceipt();
+      setProfile(res.data);
+      toast.success('Submitted for payment verification');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) return <DashboardLayout><LoadingSpinner size="lg" /></DashboardLayout>;
 
   if (error) {
@@ -645,7 +658,7 @@ export default function StudentDashboard() {
                 <>
                   <h3 className="font-semibold text-amber-800">You are accepted! Please pay your tuition fee</h3>
                   <p className="text-sm text-amber-700 mt-1">
-                    Upload a photo of your payment receipt to proceed with enrollment.
+                    You may upload a photo of your payment receipt, or submit without one for the registrar to verify manually.
                   </p>
                 </>
               )}
@@ -656,14 +669,25 @@ export default function StudentDashboard() {
                 onChange={handleReceiptUpload}
                 className="hidden"
               />
-              <button
-                onClick={() => receiptInputRef.current?.click()}
-                disabled={uploading}
-                className="mt-3 inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50"
-              >
-                {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                {uploading ? 'Uploading...' : 'Upload Payment Receipt'}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={uploading}
+                  className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50"
+                >
+                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {uploading ? 'Uploading...' : 'Upload Payment Receipt'}
+                </button>
+                {!profile?.payment_rejection_reason && (
+                  <button
+                    onClick={handleSkipReceipt}
+                    disabled={uploading}
+                    className="inline-flex items-center gap-2 border border-amber-400 text-amber-700 hover:bg-amber-100 text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50"
+                  >
+                    Submit without receipt
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -674,9 +698,9 @@ export default function StudentDashboard() {
           <div className="flex items-start gap-3">
             <Clock size={20} className="text-teal-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-teal-800">Receipt submitted — waiting for verification</h3>
+              <h3 className="font-semibold text-teal-800">Payment submitted — waiting for verification</h3>
               <p className="text-sm text-teal-700 mt-1">
-                The registrar will review your payment receipt shortly.
+                The registrar will review your payment shortly.
               </p>
               {profile?.payment_receipt_path && (
                 <div className="mt-3">

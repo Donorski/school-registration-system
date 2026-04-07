@@ -283,7 +283,10 @@ def reject_payment(
     student.payment_rejection_reason = (body.reason.strip() if body and body.reason and body.reason.strip() else None)
 
     # Build notification message
-    notif_body = "Your payment receipt has been rejected. Please upload a new receipt."
+    if student.payment_receipt_path:
+        notif_body = "Your payment receipt has been rejected. Please upload a new receipt."
+    else:
+        notif_body = "Your payment submission has been rejected. Please upload your payment receipt."
     if student.payment_rejection_reason:
         notif_body += f" Reason: {student.payment_rejection_reason}"
 
