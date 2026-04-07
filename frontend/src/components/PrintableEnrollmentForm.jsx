@@ -86,7 +86,7 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
             <thead>
               <tr style={{ backgroundColor: '#15803d', color: '#fff' }}>
                 <Th w="16px" center>#</Th>
-                <Th w="58px">Code</Th>
+                <Th w="72px">Subject Code</Th>
                 <Th>Subject Name</Th>
                 <Th w="82px">Schedule</Th>
               </tr>
