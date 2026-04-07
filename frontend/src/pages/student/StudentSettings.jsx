@@ -156,10 +156,6 @@ export default function StudentSettings() {
               </div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-gray-400">
-            To update your name, edit your{' '}
-            <a href="/student/profile" className="text-emerald-600 hover:underline">Application Form</a>.
-          </p>
         </div>
 
       </div>
