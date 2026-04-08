@@ -130,6 +130,15 @@ def update_my_profile(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    # Block modifications for currently enrolled students to prevent premature archive/re-enrollment
+    if (student.status == StudentStatus.APPROVED
+            and student.payment_status == "verified"
+            and len(student.subjects) > 0):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are currently enrolled and cannot modify your application.",
+        )
+
     # Archive previous enrollment if the student has a completed cycle
     if _should_archive(student):
         archive_label = student.student_number or f"{student.first_name or ''} {student.last_name or ''}".strip() or f"ID {student.id}"

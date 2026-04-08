@@ -63,6 +63,7 @@ export default function StudentProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [denialReason, setDenialReason] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [photoPath, setPhotoPath] = useState(null);
@@ -132,6 +133,7 @@ export default function StudentProfile() {
         setEnrollmentType(data.enrollment_type || '');
         setTransfereeSubjects(data.transferee_subjects || []);
         setHasSubmitted(submitted);
+        setPaymentStatus(data.payment_status || 'unpaid');
 
         const locked = (data.status === 'pending' || data.status === 'approved') && submitted;
 
@@ -368,7 +370,9 @@ export default function StudentProfile() {
   };
 
   // ── Submission ───────────────────────────────────────────────────────
-  const isLocked = (status === 'pending' || status === 'approved') && hasSubmitted && !!enrollmentType;
+  const isFullyEnrolled = status === 'approved' && paymentStatus === 'verified';
+  const isLocked = (status === 'approved' && hasSubmitted) ||
+                   (status === 'pending' && hasSubmitted && !!enrollmentType);
   const isDenied = status === 'denied';
 
   const doSubmit = (data) => {
@@ -516,23 +520,31 @@ export default function StudentProfile() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Registration Application Form</h1>
           <p className="text-gray-500 text-sm">
-            {isLocked
-              ? 'Your application has been submitted and is currently locked.'
-              : isDenied
-                ? 'Your application was denied. Please update and resubmit.'
-                : 'Fill out the form below and submit your application for review.'}
+            {isFullyEnrolled
+              ? 'Your enrollment is complete. This is a view-only record.'
+              : isLocked
+                ? 'Your application has been submitted and is currently locked.'
+                : isDenied
+                  ? 'Your application was denied. Please update and resubmit.'
+                  : 'Fill out the form below and submit your application for review.'}
           </p>
         </div>
       </div>
 
       {/* Status Banners */}
-      {isLocked && (
+      {isFullyEnrolled && (
+        <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm">
+          <CheckCircle size={18} className="shrink-0" />
+          <p>You are <strong>fully enrolled</strong>. Your application is locked and cannot be modified. View your subjects and schedule on your <Link to="/student/dashboard" className="underline font-medium">Dashboard</Link>.</p>
+        </div>
+      )}
+      {isLocked && !isFullyEnrolled && status === 'pending' && (
         <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm">
           <Lock size={18} className="shrink-0" />
           <p>Your application is <strong>pending review</strong>. You cannot make changes until the admin reviews it.</p>
         </div>
       )}
-      {status === 'approved' && (
+      {status === 'approved' && !isFullyEnrolled && (
         <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm">
           <CheckCircle size={18} className="shrink-0" />
           <p>Your application has been <strong>approved</strong>. Go to your <Link to="/student/dashboard" className="underline font-medium">Dashboard</Link> to upload your payment receipt and proceed with enrollment.</p>

@@ -774,13 +774,15 @@ export default function StudentDashboard() {
             to="/student/profile"
             className="mt-4 block text-center bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 rounded-lg transition"
           >
-            {profile?.status === 'approved' && profile?.first_name
-              ? 'View Application'
-              : profile?.status === 'pending' && profile?.first_name
+            {profile?.status === 'approved' && profile?.payment_status === 'verified'
+              ? 'View Enrollment'
+              : profile?.status === 'approved' && profile?.first_name
                 ? 'View Application'
-                : profile?.status === 'denied'
-                  ? 'Edit & Resubmit'
-                  : 'Fill Out Application'}
+                : profile?.status === 'pending' && profile?.first_name
+                  ? 'View Application'
+                  : profile?.status === 'denied'
+                    ? 'Edit & Resubmit'
+                    : 'Fill Out Application'}
           </Link>
         </div>
 
