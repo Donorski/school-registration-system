@@ -1,6 +1,5 @@
 """FastAPI application entry point."""
 
-import subprocess
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -16,7 +15,6 @@ from app.routers import auth, student, admin, registrar, utils, notification
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    subprocess.run(["alembic", "upgrade", "head"], check=True)
     yield
 
 
@@ -54,3 +52,8 @@ app.include_router(notification.router)
 @app.get("/", tags=["Root"])
 def root():
     return {"message": "School Registration System API", "docs": "/docs"}
+
+
+@app.get("/health", tags=["Health"])
+def health():
+    return {"status": "ok"}
