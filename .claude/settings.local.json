@@ -75,7 +75,9 @@
       "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -l)",
       "Bash(DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dbtc_school_registration_system venv/bin/alembic upgrade head)",
       "Bash(DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dbtc_school_registration_system venv/bin/python seed_curriculum.py)",
-      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -type f \\\\\\(-name *.jsx -o -name *.tsx \\\\\\))"
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -type f \\\\\\(-name *.jsx -o -name *.tsx \\\\\\))",
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\))",
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/backend -type f \\\\\\(-name *.py \\\\\\) ! -path */venv/* ! -path */__pycache__/*)"
     ]
   }
 }

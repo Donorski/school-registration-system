@@ -9,7 +9,7 @@ import ComingSoon from './pages/ComingSoon';
 // ─── COMING SOON TOGGLE ───────────────────────────────────────────────────────
 // Set to `true` to show the Coming Soon page to all visitors.
 // Set to `false` to open the full application.
-const COMING_SOON = false;
+const COMING_SOON = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Login = lazy(() => import('./pages/Login'));
