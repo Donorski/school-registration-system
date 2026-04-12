@@ -170,13 +170,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Demo credentials */}
-        <div className="mt-6 bg-white/70 rounded-xl p-4 text-xs text-gray-500">
-          <p className="font-medium text-gray-600 mb-2">Demo Accounts:</p>
-          <p>Admin: admin@school.com / Admin123!</p>
-          <p>Registrar: registrar@school.com / Registrar123!</p>
-          <p>Student: juan.delacruz@email.com / Student123!</p>
-        </div>
       </div>
     </div>
   );
