@@ -39,9 +39,13 @@ def _public_id_from_url(url: str) -> tuple[str, str]:
         if after_upload and after_upload[0].startswith("v") and after_upload[0][1:].isdigit():
             after_upload = after_upload[1:]
         public_id_with_ext = "/".join(after_upload)
-        # Strip file extension
-        dot_idx = public_id_with_ext.rfind(".")
-        public_id = public_id_with_ext[:dot_idx] if dot_idx != -1 else public_id_with_ext
+        # For raw resources (PDFs), the extension is part of the public_id in Cloudinary.
+        # Only strip extension for image resources.
+        if resource_type == "raw":
+            public_id = public_id_with_ext
+        else:
+            dot_idx = public_id_with_ext.rfind(".")
+            public_id = public_id_with_ext[:dot_idx] if dot_idx != -1 else public_id_with_ext
         return public_id, resource_type
     except Exception:
         return "", "image"

@@ -1,9 +1,7 @@
 export function getCloudinaryViewUrl(url) {
   if (!url) return url;
-  const isPdf = url.toLowerCase().endsWith('.pdf') || url.includes('/raw/upload/');
-  if (isPdf) {
-    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
-  }
+  // Return the direct URL — Cloudinary raw PDFs are publicly accessible and
+  // browsers can render them natively without a third-party viewer.
   return url;
 }
 
