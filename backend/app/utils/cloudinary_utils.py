@@ -68,11 +68,35 @@ def delete_cloudinary_file(url: str) -> None:
 
 
 def download_cloudinary_file(url: str) -> bytes | None:
-    """Download a file from Cloudinary by direct URL."""
+    """Download a file from Cloudinary using a signed URL (required for authenticated delivery)."""
     if not url:
         return None
     try:
-        resp = _http.get(url, timeout=60, allow_redirects=True)
+        public_id, resource_type = _public_id_from_url(url)
+        if not public_id:
+            return None
+
+        if resource_type == "image":
+            # public_id has no extension — pass it via format so the signed URL is complete
+            original_filename = url.split("?")[0].split("/")[-1]
+            fmt = original_filename.rsplit(".", 1)[-1] if "." in original_filename else None
+            signed_url, _ = cloudinary.utils.cloudinary_url(
+                public_id,
+                resource_type=resource_type,
+                format=fmt,
+                sign_url=True,
+                secure=True,
+            )
+        else:
+            # raw resources: public_id already includes the extension
+            signed_url, _ = cloudinary.utils.cloudinary_url(
+                public_id,
+                resource_type=resource_type,
+                sign_url=True,
+                secure=True,
+            )
+
+        resp = _http.get(signed_url, timeout=60, allow_redirects=True)
         resp.raise_for_status()
         return resp.content
     except Exception as e:
