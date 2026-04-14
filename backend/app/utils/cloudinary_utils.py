@@ -68,24 +68,38 @@ def delete_cloudinary_file(url: str) -> None:
 
 
 def download_cloudinary_file(url: str) -> bytes | None:
-    """Download a file from Cloudinary by URL, handling both image and raw resource types."""
+    """Download a file from Cloudinary. Tries direct URL first, falls back to signed URL."""
     if not url:
         return None
+
+    # Try direct URL first (works when Cloudinary account allows public access)
+    try:
+        resp = _http.get(url, timeout=60, allow_redirects=True)
+        if resp.status_code == 200:
+            return resp.content
+        logger.warning("Direct Cloudinary fetch returned %s for %s — trying signed URL", resp.status_code, url)
+    except Exception as e:
+        logger.warning("Direct Cloudinary fetch failed for %s: %s — trying signed URL", url, e)
+
+    # Fall back to signed URL
     try:
         public_id, resource_type = _public_id_from_url(url)
         if not public_id:
+            logger.error("Could not extract public_id from Cloudinary URL: %s", url)
             return None
-        # Generate a signed URL so raw/private files are accessible
         signed_url, _ = cloudinary.utils.cloudinary_url(
             public_id,
             resource_type=resource_type,
             sign_url=True,
+            secure=True,
         )
         resp = _http.get(signed_url, timeout=60, allow_redirects=True)
-        resp.raise_for_status()
-        return resp.content
+        if resp.status_code == 200:
+            return resp.content
+        logger.error("Signed Cloudinary fetch returned %s for %s (signed url: %s)", resp.status_code, url, signed_url)
+        return None
     except Exception as e:
-        logger.error("Failed to download Cloudinary file %s: %s", url, e)
+        logger.error("Signed Cloudinary fetch failed for %s: %s", url, e)
         return None
 
 
