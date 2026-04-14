@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonListItem } from '../../components/SkeletonLoader';
 import ConfirmModal from '../../components/ConfirmModal';
-import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment, downloadStudentFilesRegistrar } from '../../services/api';
-import { getErrorMessage, getCloudinaryViewUrl } from '../../utils/helpers';
+import { getPendingPayments, getStudentCompleteInfo, verifyPayment, rejectPayment, downloadStudentFilesRegistrar, proxyStudentFileRegistrar } from '../../services/api';
+import { getErrorMessage } from '../../utils/helpers';
 
 export default function PaymentReview() {
   const [students, setStudents] = useState([]);
@@ -18,6 +18,8 @@ export default function PaymentReview() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const handleDownloadFiles = async () => {
     if (!selectedStudent || !studentDetail) return;
@@ -39,6 +41,25 @@ export default function PaymentReview() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleViewPdf = async (cloudinaryUrl) => {
+    setPdfLoading(true);
+    try {
+      const res = await proxyStudentFileRegistrar(selectedStudent, cloudinaryUrl);
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+      setPdfViewerUrl(blobUrl);
+    } catch {
+      toast.error('Failed to load document');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const closePdfViewer = () => {
+    if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+    setPdfViewerUrl(null);
   };
 
   const fetchStudents = async () => {
@@ -251,10 +272,10 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Last School Grades</p>
                     {studentDetail.grades_path ? (
                       isPdf(studentDetail.grades_path) ? (
-                        <a href={getCloudinaryViewUrl(studentDetail.grades_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <button onClick={() => handleViewPdf(studentDetail.grades_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
-                        </a>
+                        </button>
                       ) : (
                         <a href={studentDetail.grades_path} target="_blank" rel="noopener noreferrer">
                           <img
@@ -274,10 +295,10 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Voucher</p>
                     {studentDetail.voucher_path ? (
                       isPdf(studentDetail.voucher_path) ? (
-                        <a href={getCloudinaryViewUrl(studentDetail.voucher_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <button onClick={() => handleViewPdf(studentDetail.voucher_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
-                        </a>
+                        </button>
                       ) : (
                         <a href={studentDetail.voucher_path} target="_blank" rel="noopener noreferrer">
                           <img
@@ -298,10 +319,10 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Transfer Credential / Form 137</p>
                       {studentDetail.transfer_credential_path ? (
                         isPdf(studentDetail.transfer_credential_path) ? (
-                          <a href={getCloudinaryViewUrl(studentDetail.transfer_credential_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <button onClick={() => handleViewPdf(studentDetail.transfer_credential_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
-                          </a>
+                          </button>
                         ) : (
                           <a href={studentDetail.transfer_credential_path} target="_blank" rel="noopener noreferrer">
                             <img
@@ -323,10 +344,10 @@ export default function PaymentReview() {
                       <p className="text-xs font-medium text-amber-600 mb-2">Good Moral Certificate</p>
                       {studentDetail.good_moral_path ? (
                         isPdf(studentDetail.good_moral_path) ? (
-                          <a href={getCloudinaryViewUrl(studentDetail.good_moral_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                          <button onClick={() => handleViewPdf(studentDetail.good_moral_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                             <FileText size={20} />
                             View PDF
-                          </a>
+                          </button>
                         ) : (
                           <a href={studentDetail.good_moral_path} target="_blank" rel="noopener noreferrer">
                             <img
@@ -347,10 +368,10 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">PSA Birth Certificate</p>
                     {studentDetail.psa_birth_cert_path ? (
                       isPdf(studentDetail.psa_birth_cert_path) ? (
-                        <a href={getCloudinaryViewUrl(studentDetail.psa_birth_cert_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <button onClick={() => handleViewPdf(studentDetail.psa_birth_cert_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
-                        </a>
+                        </button>
                       ) : (
                         <a href={studentDetail.psa_birth_cert_path} target="_blank" rel="noopener noreferrer">
                           <img
@@ -370,10 +391,10 @@ export default function PaymentReview() {
                     <p className="text-xs font-medium text-gray-500 mb-2">Payment Receipt</p>
                     {studentDetail.payment_receipt_path ? (
                       isPdf(studentDetail.payment_receipt_path) ? (
-                        <a href={getCloudinaryViewUrl(studentDetail.payment_receipt_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                        <button onClick={() => handleViewPdf(studentDetail.payment_receipt_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                           <FileText size={20} />
                           View PDF
-                        </a>
+                        </button>
                       ) : (
                         <a href={studentDetail.payment_receipt_path} target="_blank" rel="noopener noreferrer">
                           <img
@@ -425,6 +446,29 @@ export default function PaymentReview() {
           )}
         </div>
       </div>
+
+      {/* PDF Viewer Modal */}
+      {(pdfViewerUrl || pdfLoading) && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closePdfViewer}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-medium text-gray-700">Document Viewer</span>
+              <button onClick={closePdfViewer} className="text-gray-400 hover:text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-100 text-lg leading-none">×</button>
+            </div>
+            {pdfLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 size={32} className="animate-spin text-emerald-600" />
+              </div>
+            ) : (
+              <iframe
+                src={pdfViewerUrl}
+                className="flex-1 w-full border-0"
+                title="Document Preview"
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Verify Confirmation */}
       <ConfirmModal

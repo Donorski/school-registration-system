@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -382,6 +382,44 @@ def download_student_files(
         zip_buffer,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{folder_name}_files.zip"'},
+    )
+
+
+@router.get("/students/{student_id}/files/proxy")
+def proxy_student_file(
+    student_id: int,
+    url: str = Query(...),
+    _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
+    db: Session = Depends(get_db),
+):
+    """Proxy a student file from Cloudinary with inline Content-Disposition for browser viewing."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    allowed_urls = list(filter(None, [
+        student.student_photo_path,
+        student.grades_path,
+        student.voucher_path,
+        student.psa_birth_cert_path,
+        student.transfer_credential_path,
+        student.good_moral_path,
+        student.payment_receipt_path,
+        *(student.documents_path or []),
+    ]))
+    if url not in allowed_urls:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    content = download_cloudinary_file(url)
+    if not content:
+        raise HTTPException(status_code=404, detail="File not available")
+
+    content_type = "application/pdf" if ("/raw/upload/" in url or url.lower().endswith(".pdf")) else "image/jpeg"
+    filename = url.split("/")[-1].split("?")[0]
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
 
 

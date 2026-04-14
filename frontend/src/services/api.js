@@ -94,6 +94,7 @@ export const approveStudent = (id, data = {}) => api.put(`/admin/students/${id}/
 export const denyStudent = (id, reason) => api.put(`/admin/students/${id}/deny`, { reason: reason || null });
 export const deleteStudent = (id) => api.delete(`/admin/students/${id}`);
 export const downloadStudentFiles = (id) => api.get(`/admin/students/${id}/download-files`, { responseType: 'blob' });
+export const proxyStudentFile = (id, url) => api.get(`/admin/students/${id}/files/proxy`, { params: { url }, responseType: 'blob' });
 export const getDashboardStats = () => api.get('/admin/dashboard/stats');
 export const getAccounts = (params) => api.get('/admin/accounts', { params });
 export const createAccount = (data) => api.post('/admin/accounts', data);
@@ -122,6 +123,7 @@ export const verifyPayment = (id) => api.put(`/registrar/students/${id}/verify-p
 export const rejectPayment = (id, reason) => api.put(`/registrar/students/${id}/reject-payment`, { reason: reason || null });
 export const updateTransfereeCreditStatus = (id, data) => api.put(`/registrar/students/${id}/transferee-credits`, data);
 export const downloadStudentFilesRegistrar = (id) => api.get(`/registrar/students/${id}/download-files`, { responseType: 'blob' });
+export const proxyStudentFileRegistrar = (id, url) => api.get(`/registrar/students/${id}/files/proxy`, { params: { url }, responseType: 'blob' });
 
 // --- Notifications ---
 export const getNotifications = () => api.get('/notifications');

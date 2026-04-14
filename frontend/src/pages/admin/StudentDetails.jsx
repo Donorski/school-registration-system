@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory, downloadStudentFiles } from '../../services/api';
-import { statusColor, formatDate, getErrorMessage, getCloudinaryViewUrl } from '../../utils/helpers';
+import { getStudentById, approveStudent, denyStudent, getAdminStudentEnrollmentHistory, downloadStudentFiles, proxyStudentFile } from '../../services/api';
+import { statusColor, formatDate, getErrorMessage } from '../../utils/helpers';
 
 const isPdf = (path) => path?.toLowerCase().endsWith('.pdf') || path?.includes('/raw/upload/');
 
@@ -23,6 +23,8 @@ export default function StudentDetails() {
   const [denyReason, setDenyReason] = useState('');
   const [denying, setDenying] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [enrollForm, setEnrollForm] = useState({
     enrollment_date: '',
     place_of_birth: '',
@@ -63,6 +65,25 @@ export default function StudentDetails() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleViewPdf = async (cloudinaryUrl) => {
+    setPdfLoading(true);
+    try {
+      const res = await proxyStudentFile(id, cloudinaryUrl);
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+      setPdfViewerUrl(blobUrl);
+    } catch {
+      toast.error('Failed to load document');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const closePdfViewer = () => {
+    if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+    setPdfViewerUrl(null);
   };
 
   const handleEnrollSubmit = async (e) => {
@@ -136,24 +157,26 @@ export default function StudentDetails() {
             </div>
           </div>
         </div>
-        {student.status === 'pending' && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleDownloadFiles}
-              disabled={downloading}
-              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
-            >
-              {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              {downloading ? 'Downloading...' : 'Download Files'}
-            </button>
-            <button onClick={handleApproveClick} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              <CheckCircle size={16} /> Approve
-            </button>
-            <button onClick={() => { setDenyReason(''); setShowDenyModal(true); }} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              <XCircle size={16} /> Deny
-            </button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownloadFiles}
+            disabled={downloading}
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
+          >
+            {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {downloading ? 'Downloading...' : 'Download Files'}
+          </button>
+          {student.status === 'pending' && (
+            <>
+              <button onClick={handleApproveClick} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <CheckCircle size={16} /> Approve
+              </button>
+              <button onClick={() => { setDenyReason(''); setShowDenyModal(true); }} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <XCircle size={16} /> Deny
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -218,9 +241,9 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">Last School Grades</p>
               {student.grades_path ? (
                 isPdf(student.grades_path) ? (
-                  <a href={getCloudinaryViewUrl(student.grades_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <button onClick={() => handleViewPdf(student.grades_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
-                  </a>
+                  </button>
                 ) : (
                   <a href={student.grades_path} target="_blank" rel="noopener noreferrer">
                     <img src={student.grades_path} alt="Grades" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
@@ -233,9 +256,9 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">Voucher</p>
               {student.voucher_path ? (
                 isPdf(student.voucher_path) ? (
-                  <a href={getCloudinaryViewUrl(student.voucher_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <button onClick={() => handleViewPdf(student.voucher_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
-                  </a>
+                  </button>
                 ) : (
                   <a href={student.voucher_path} target="_blank" rel="noopener noreferrer">
                     <img src={student.voucher_path} alt="Voucher" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
@@ -248,9 +271,9 @@ export default function StudentDetails() {
               <p className="text-xs text-gray-500 mb-2">PSA Birth Certificate</p>
               {student.psa_birth_cert_path ? (
                 isPdf(student.psa_birth_cert_path) ? (
-                  <a href={getCloudinaryViewUrl(student.psa_birth_cert_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                  <button onClick={() => handleViewPdf(student.psa_birth_cert_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                     <FileText size={20} /> View PDF
-                  </a>
+                  </button>
                 ) : (
                   <a href={student.psa_birth_cert_path} target="_blank" rel="noopener noreferrer">
                     <img src={student.psa_birth_cert_path} alt="PSA Birth Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
@@ -264,9 +287,9 @@ export default function StudentDetails() {
                 <p className="text-xs text-gray-500 mb-2">Transfer Credential / Form 137</p>
                 {student.transfer_credential_path ? (
                   isPdf(student.transfer_credential_path) ? (
-                    <a href={getCloudinaryViewUrl(student.transfer_credential_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                    <button onClick={() => handleViewPdf(student.transfer_credential_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
-                    </a>
+                    </button>
                   ) : (
                     <a href={student.transfer_credential_path} target="_blank" rel="noopener noreferrer">
                       <img src={student.transfer_credential_path} alt="Transfer Credential" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
@@ -281,9 +304,9 @@ export default function StudentDetails() {
                 <p className="text-xs text-gray-500 mb-2">Good Moral Certificate</p>
                 {student.good_moral_path ? (
                   isPdf(student.good_moral_path) ? (
-                    <a href={getCloudinaryViewUrl(student.good_moral_path)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
+                    <button onClick={() => handleViewPdf(student.good_moral_path)} className="flex items-center gap-2 text-emerald-600 hover:underline text-sm">
                       <FileText size={20} /> View PDF
-                    </a>
+                    </button>
                   ) : (
                     <a href={student.good_moral_path} target="_blank" rel="noopener noreferrer">
                       <img src={student.good_moral_path} alt="Good Moral Certificate" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200" />
@@ -444,6 +467,29 @@ export default function StudentDetails() {
                 {denying ? 'Denying...' : 'Confirm Deny'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {(pdfViewerUrl || pdfLoading) && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closePdfViewer}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-medium text-gray-700">Document Viewer</span>
+              <button onClick={closePdfViewer} className="text-gray-400 hover:text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-100 text-lg leading-none">×</button>
+            </div>
+            {pdfLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 size={32} className="animate-spin text-emerald-600" />
+              </div>
+            ) : (
+              <iframe
+                src={pdfViewerUrl}
+                className="flex-1 w-full border-0"
+                title="Document Preview"
+              />
+            )}
           </div>
         </div>
       )}
