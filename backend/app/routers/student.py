@@ -2,8 +2,10 @@
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth.dependencies import require_role
@@ -18,6 +20,7 @@ from app.utils.notifications import create_notification
 from app.utils.audit_log import create_audit_log
 
 router = APIRouter(prefix="/api/students", tags=["Student"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _get_student_or_404(user: User, db: Session) -> Student:
@@ -120,7 +123,9 @@ def get_my_profile(
 
 
 @router.put("/me", response_model=StudentResponse)
+@limiter.limit("20/minute")
 def update_my_profile(
+    request: Request,
     data: StudentUpdate,
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -188,7 +193,9 @@ def update_my_profile(
 
 
 @router.post("/me/photo", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_photo(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -204,7 +211,9 @@ async def upload_photo(
 
 
 @router.post("/me/documents", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_documents(
+    request: Request,
     files: list[UploadFile] = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -225,7 +234,9 @@ async def upload_documents(
 
 
 @router.post("/me/grades", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_grades(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -241,7 +252,9 @@ async def upload_grades(
 
 
 @router.post("/me/voucher", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_voucher(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -257,7 +270,9 @@ async def upload_voucher(
 
 
 @router.post("/me/psa-birth-cert", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_psa_birth_cert(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -273,7 +288,9 @@ async def upload_psa_birth_cert(
 
 
 @router.post("/me/transfer-credential", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_transfer_credential(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -289,7 +306,9 @@ async def upload_transfer_credential(
 
 
 @router.post("/me/good-moral", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_good_moral(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -305,7 +324,9 @@ async def upload_good_moral(
 
 
 @router.post("/me/payment-receipt", response_model=StudentResponse)
+@limiter.limit("10/minute")
 async def upload_payment_receipt(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
@@ -342,7 +363,9 @@ async def upload_payment_receipt(
 
 
 @router.post("/me/payment-submit", response_model=StudentResponse)
+@limiter.limit("5/minute")
 def submit_payment_without_receipt(
+    request: Request,
     current_user: User = Depends(require_role(UserRole.STUDENT)),
     db: Session = Depends(get_db),
 ):

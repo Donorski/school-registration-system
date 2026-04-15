@@ -6,7 +6,9 @@ import zipfile
 import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -32,6 +34,7 @@ from app.utils.audit_log import create_audit_log
 from app.utils.cloudinary_utils import delete_cloudinary_file, delete_student_files, clear_student_file_fields, download_cloudinary_file
 
 router = APIRouter(prefix="/api/registrar", tags=["Registrar"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _generate_school_id(db: Session) -> str:
@@ -340,7 +343,9 @@ def get_student_enrollment_history(
 
 
 @router.get("/students/{student_id}/download-files")
+@limiter.limit("20/minute")
 def download_student_files(
+    request: Request,
     student_id: int,
     _registrar: User = Depends(require_role(UserRole.REGISTRAR)),
     db: Session = Depends(get_db),
@@ -386,7 +391,9 @@ def download_student_files(
 
 
 @router.get("/students/{student_id}/files/proxy")
+@limiter.limit("30/minute")
 def proxy_student_file(
+    request: Request,
     student_id: int,
     url: str = Query(...),
     _registrar: User = Depends(require_role(UserRole.REGISTRAR)),

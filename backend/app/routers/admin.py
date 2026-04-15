@@ -9,7 +9,9 @@ from io import BytesIO
 from typing import Optional
 
 import requests as http_requests
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -94,6 +96,7 @@ class AuditLogListResponse(BaseModel):
 
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _student_to_response(student: Student) -> StudentResponse:
@@ -165,7 +168,9 @@ def list_pending_students(
 
 
 @router.get("/students/{student_id}/download-files")
+@limiter.limit("20/minute")
 def download_student_files(
+    request: Request,
     student_id: int,
     _admin: User = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db),
@@ -210,7 +215,9 @@ def download_student_files(
 
 
 @router.get("/students/{student_id}/files/proxy")
+@limiter.limit("30/minute")
 def proxy_student_file(
+    request: Request,
     student_id: int,
     url: str = Query(...),
     _admin: User = Depends(require_role(UserRole.ADMIN)),
