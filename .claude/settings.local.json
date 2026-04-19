@@ -77,7 +77,15 @@
       "Bash(DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dbtc_school_registration_system venv/bin/python seed_curriculum.py)",
       "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -type f \\\\\\(-name *.jsx -o -name *.tsx \\\\\\))",
       "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\))",
-      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/backend -type f \\\\\\(-name *.py \\\\\\) ! -path */venv/* ! -path */__pycache__/*)"
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/backend -type f \\\\\\(-name *.py \\\\\\) ! -path */venv/* ! -path */__pycache__/*)",
+      "Bash(sed -n '320,340p' backend/app/routers/admin.py)",
+      "Bash(sed -n '230,250p' backend/app/routers/registrar.py)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python3 -c \":*)",
+      "Bash(venv/bin/python3 -c \":*)",
+      "Bash(venv/bin/python3.12 -c \":*)",
+      "Bash(pip3 show:*)",
+      "Bash(python3 -c \"import cloudinary; print\\(cloudinary.__version__\\)\")"
     ]
   }
 }
