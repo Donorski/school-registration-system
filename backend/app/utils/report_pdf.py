@@ -298,19 +298,6 @@ def build_enrollment_report(
 
     now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
 
-    # ── Watermark image (pre-processed once, reused every page) ──────
-    _watermark_buf: BytesIO | None = None
-    if _PIL_AVAILABLE and _logo_path.exists():
-        try:
-            wm = PILImage.open(_logo_path).convert("RGBA")
-            r, g, b, a = wm.split()
-            a = a.point(lambda x: int(x * 0.07))   # 7 % opacity
-            wm = PILImage.merge("RGBA", (r, g, b, a))
-            _watermark_buf = BytesIO()
-            wm.save(_watermark_buf, format="PNG")
-        except Exception:
-            logger.warning("Could not build watermark image", exc_info=True)
-
     def _on_page(canvas, doc):
         """Draw watermark + footer on every page automatically."""
         canvas.saveState()
@@ -383,6 +370,19 @@ def build_enrollment_report(
         _logo_img_data = BytesIO(_logo_path.read_bytes())
     else:
         logger.warning("School logo not found at %s", _logo_path)
+
+    # ── Watermark image (pre-processed once, reused every page) ──────
+    _watermark_buf: BytesIO | None = None
+    if _PIL_AVAILABLE and _logo_path.exists():
+        try:
+            wm = PILImage.open(_logo_path).convert("RGBA")
+            r, g, b, a = wm.split()
+            a = a.point(lambda x: int(x * 0.07))   # 7 % opacity
+            wm = PILImage.merge("RGBA", (r, g, b, a))
+            _watermark_buf = BytesIO()
+            wm.save(_watermark_buf, format="PNG")
+        except Exception:
+            logger.warning("Could not build watermark image", exc_info=True)
 
     LOGO_SIZE = 0.55 * inch   # square logo
 
