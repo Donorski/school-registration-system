@@ -5,6 +5,12 @@ from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from PIL import Image as PILImage
+    _PIL_AVAILABLE = True
+except ImportError:
+    _PIL_AVAILABLE = False
+
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
@@ -292,9 +298,39 @@ def build_enrollment_report(
 
     now_str  = datetime.now().strftime("%B %d, %Y  %I:%M %p")
 
+    # ── Watermark image (pre-processed once, reused every page) ──────
+    _watermark_buf: BytesIO | None = None
+    if _PIL_AVAILABLE and _logo_path.exists():
+        try:
+            wm = PILImage.open(_logo_path).convert("RGBA")
+            r, g, b, a = wm.split()
+            a = a.point(lambda x: int(x * 0.07))   # 7 % opacity
+            wm = PILImage.merge("RGBA", (r, g, b, a))
+            _watermark_buf = BytesIO()
+            wm.save(_watermark_buf, format="PNG")
+        except Exception:
+            logger.warning("Could not build watermark image", exc_info=True)
+
     def _on_page(canvas, doc):
-        """Draw footer on every page automatically."""
+        """Draw watermark + footer on every page automatically."""
         canvas.saveState()
+
+        # Watermark — centred on the page
+        if _watermark_buf is not None:
+            _watermark_buf.seek(0)
+            page_w, page_h = letter
+            wm_size = 4.5 * inch
+            canvas.drawImage(
+                _watermark_buf,
+                (page_w - wm_size) / 2,
+                (page_h - wm_size) / 2,
+                width=wm_size,
+                height=wm_size,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
+
+        # Footer
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(TEXT_MUTED)
         footer_text = (
