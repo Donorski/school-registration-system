@@ -30,8 +30,29 @@ const PrintableClassList = forwardRef(function PrintableClassList(
         padding: '12mm 15mm',
         boxSizing: 'border-box',
         fontSize: '9pt',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* ── Watermark ── */}
+      <img
+        src="/images/logo.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '120mm',
+          height: '120mm',
+          objectFit: 'contain',
+          opacity: 0.06,
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+      />
+
       {/* ── Header ── */}
       <div style={{
         display: 'flex',
