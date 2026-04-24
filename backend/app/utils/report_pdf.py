@@ -19,6 +19,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak, Image,
 )
+from reportlab.lib.utils import ImageReader
 from reportlab.graphics.shapes import Drawing, String, Rect, Group
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart, HorizontalBarChart
@@ -304,18 +305,21 @@ def build_enrollment_report(
 
         # Watermark — centred on the page
         if _watermark_buf is not None:
-            _watermark_buf.seek(0)
-            page_w, page_h = letter
-            wm_size = 4.5 * inch
-            canvas.drawImage(
-                _watermark_buf,
-                (page_w - wm_size) / 2,
-                (page_h - wm_size) / 2,
-                width=wm_size,
-                height=wm_size,
-                preserveAspectRatio=True,
-                mask="auto",
-            )
+            try:
+                _watermark_buf.seek(0)
+                page_w, page_h = letter
+                wm_size = 4.5 * inch
+                canvas.drawImage(
+                    ImageReader(_watermark_buf),
+                    (page_w - wm_size) / 2,
+                    (page_h - wm_size) / 2,
+                    width=wm_size,
+                    height=wm_size,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+            except Exception:
+                logger.warning("Could not draw watermark", exc_info=True)
 
         # Footer
         canvas.setFont("Helvetica", 7)
