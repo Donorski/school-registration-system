@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
-import { getMe } from '../services/api';
+import { getMe, logoutApi } from '../services/api';
 
 export const AuthContext = createContext(null);
 
@@ -49,10 +49,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setAvatar(null);
+    logoutApi().catch(() => {}).finally(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setAvatar(null);
+    });
   }, []);
 
   const refreshUser = useCallback(() => {

@@ -39,6 +39,12 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
         )
+    if user.role in (UserRole.ADMIN, UserRole.REGISTRAR):
+        if user.active_token != credentials.credentials:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again.",
+            )
     return user
 
 

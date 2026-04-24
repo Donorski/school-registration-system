@@ -84,8 +84,27 @@ def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
             detail="Account is deactivated",
         )
 
+    if user.role in (UserRole.ADMIN, UserRole.REGISTRAR):
+        if user.active_token and not data.force:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="active_session",
+            )
+
     token = create_access_token({"user_id": user.id, "role": user.role.value})
+    if user.role in (UserRole.ADMIN, UserRole.REGISTRAR):
+        user.active_token = token
+        db.commit()
     return TokenResponse(access_token=token, role=user.role.value)
+
+
+@router.post("/logout")
+def logout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Invalidate the current session token."""
+    if current_user.role in (UserRole.ADMIN, UserRole.REGISTRAR):
+        current_user.active_token = None
+        db.commit()
+    return {"detail": "Logged out successfully"}
 
 
 class GoogleAuthRequest(BaseModel):

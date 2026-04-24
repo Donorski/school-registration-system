@@ -42,6 +42,7 @@ export const login = (data) => api.post('/auth/login', data);
 export const registerStudent = (data) => api.post('/auth/register', data);
 export const googleAuth = (credential) => api.post('/auth/google', { credential });
 export const getMe = () => api.get('/auth/me');
+export const logoutApi = () => api.post('/auth/logout');
 
 // --- Student ---
 export const getMyProfile = () => api.get('/students/me');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, MonitorSmartphone } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { login, googleAuth } from '../services/api';
@@ -21,6 +21,7 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [activeSessionData, setActiveSessionData] = useState(null); // holds credentials when 409
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   // Redirect when user state updates after login
@@ -47,14 +48,33 @@ export default function Login() {
   const onSubmit = async (data) => {
     setSubmitting(true);
     setLoginError('');
+    setActiveSessionData(null);
     try {
       const res = await login(data);
       const { access_token, role } = res.data;
       loginUser(access_token, { email: data.email, role });
       toast.success('Login successful');
     } catch (err) {
-      const msg = getErrorMessage(err);
-      setLoginError(msg);
+      if (err.response?.status === 409 && err.response?.data?.detail === 'active_session') {
+        setActiveSessionData(data);
+      } else {
+        setLoginError(getErrorMessage(err));
+      }
+      setSubmitting(false);
+    }
+  };
+
+  const handleForceLogin = async () => {
+    if (!activeSessionData) return;
+    setSubmitting(true);
+    setActiveSessionData(null);
+    try {
+      const res = await login({ ...activeSessionData, force: true });
+      const { access_token, role } = res.data;
+      loginUser(access_token, { email: activeSessionData.email, role });
+      toast.success('Login successful');
+    } catch (err) {
+      setLoginError(getErrorMessage(err));
       setSubmitting(false);
     }
   };
@@ -84,6 +104,36 @@ export default function Login() {
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 <AlertCircle size={16} className="shrink-0" />
                 <p>{loginError}</p>
+              </div>
+            )}
+
+            {activeSessionData && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-sm">
+                <div className="flex items-center gap-2 text-amber-800 font-medium mb-1">
+                  <MonitorSmartphone size={16} className="shrink-0" />
+                  <span>Account is active on another device</span>
+                </div>
+                <p className="text-amber-700 mb-3">
+                  This account is currently logged in on another device. Logging in here will end that session.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleForceLogin}
+                    disabled={submitting}
+                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-1"
+                  >
+                    {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Login Anyway
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSessionData(null)}
+                    className="flex-1 bg-white hover:bg-amber-50 text-amber-700 border border-amber-300 text-sm font-medium py-2 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 
