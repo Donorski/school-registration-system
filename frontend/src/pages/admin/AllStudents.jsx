@@ -16,6 +16,7 @@ export default function AllStudents() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -33,11 +34,19 @@ export default function AllStudents() {
     return () => { if (previewUrl) window.URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchData = () => {
     setLoading(true);
     const params = { page, per_page: perPage };
     if (statusFilter) params.status = statusFilter;
-    if (search.trim()) params.search = search.trim();
+    if (debouncedSearch) params.search = debouncedSearch;
     getAdminStudents(params)
       .then((res) => {
         setStudents(res.data.students);
@@ -46,7 +55,7 @@ export default function AllStudents() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, [page, statusFilter, search]);
+  useEffect(() => { fetchData(); }, [page, statusFilter, debouncedSearch]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -150,7 +159,7 @@ export default function AllStudents() {
           <input
             type="text"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or student number..."
             className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
           />

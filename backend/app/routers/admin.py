@@ -115,6 +115,7 @@ def list_students(
     grade_level: str | None = None,
     strand: str | None = None,
     semester: str | None = None,
+    search: str | None = None,
     _admin: User = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ):
@@ -135,6 +136,13 @@ def list_students(
         query = query.filter(Student.strand == strand)
     if semester:
         query = query.filter(Student.semester == semester)
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            (Student.first_name.ilike(search_term))
+            | (Student.last_name.ilike(search_term))
+            | (Student.student_number.ilike(search_term))
+        )
 
     total = query.count()
     students = query.order_by(Student.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
