@@ -55,7 +55,7 @@ export default function RegistrarDashboard() {
       getApprovedStudents({ payment_status: 'verified', per_page: 5 }),
     ])
       .then(([subjectsRes, studentsRes, paymentsRes, verifiedRes]) => {
-        setSubjectCount(subjectsRes.data.length);
+        setSubjectCount(subjectsRes.data.total);
         setStudentCount(studentsRes.data.total);
         setPendingPaymentCount(paymentsRes.data.total);
         setRecentVerified(verifiedRes.data.students || verifiedRes.data.data || []);
