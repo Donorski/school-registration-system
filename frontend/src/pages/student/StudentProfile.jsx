@@ -208,6 +208,7 @@ export default function StudentProfile() {
         if (missing.length > 0) { toast.error(`Please fill in: ${missing.join(', ')}`); return; }
       } else if (step === 3) {
         const missing = [];
+        if (!photoPath) missing.push('ID Photo');
         if (!values.first_name) missing.push('First Name');
         if (!values.last_name) missing.push('Last Name');
         if (!values.birthday) missing.push('Birthday');
@@ -340,6 +341,8 @@ export default function StudentProfile() {
       fillFields.forEach((f) => {
         if (data[f] !== undefined && data[f] !== null && data[f] !== '') setValue(f, data[f]);
       });
+      // Sync lrn_learner_ref_no to lrn if present
+      if (data.lrn) setValue('lrn_learner_ref_no', data.lrn);
       setValue('enrollment_type', 'RE_ENROLLEE');
       setEnrollmentType('RE_ENROLLEE');
       if (data.grade_level_to_enroll === 'Grade 11') {
@@ -390,7 +393,11 @@ export default function StudentProfile() {
     };
     if (data.enrollment_type === 'TRANSFEREE') requiredFields.last_school_attended = 'Last School Attended';
     const missing = Object.entries(requiredFields).filter(([key]) => !data[key] || data[key] === '').map(([, label]) => label);
+    if (!photoPath) missing.push('ID Photo');
     if (missing.length > 0) { toast.error(`Please fill in: ${missing.join(', ')}`); return; }
+
+    // Sync lrn_learner_ref_no to lrn so both backend fields are populated
+    data.lrn_learner_ref_no = data.lrn;
 
     const fields = [
       'enrollment_type', 'school_year', 'semester', 'lrn', 'is_returning_student', 'grade_level_to_enroll',
@@ -732,7 +739,7 @@ export default function StudentProfile() {
         <div className="space-y-6">
           {/* ID Photo */}
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">ID Photo</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">ID Photo <span className="text-red-500">*</span></h2>
             <div className="flex items-center gap-6">
               <div className="relative">
                 {photoPath ? (
@@ -781,7 +788,6 @@ export default function StudentProfile() {
               <div><label className={labelClass}>Mother Tongue</label><input {...register('mother_tongue')} disabled={isLocked} className={inputClass} /></div>
               <div><label className={labelClass}>Religion</label><input {...register('religion')} disabled={isLocked} className={inputClass} /></div>
               <div><label className={labelClass}>PSA Birth Certificate No.</label><input {...register('psa_birth_certificate_no')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>LRN / Learner Reference No.</label><input {...register('lrn_learner_ref_no')} disabled={isLocked} className={inputClass} /></div>
             </div>
           </div>
         </div>
