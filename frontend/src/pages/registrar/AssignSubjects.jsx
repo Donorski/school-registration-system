@@ -297,13 +297,6 @@ export default function AssignSubjects() {
                       : 'hover:bg-gray-50 text-gray-700'
                   }`}
                 >
-                  {s.student_photo_path ? (
-                    <img src={s.student_photo_path} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">
-                      <User size={16} />
-                    </div>
-                  )}
                   <div className="min-w-0">
                     <p className="font-medium truncate">{s.first_name || '—'} {s.last_name || ''}</p>
                     <div className="flex items-center gap-1.5 flex-wrap">
