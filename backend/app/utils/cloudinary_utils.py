@@ -104,9 +104,8 @@ def download_cloudinary_file(url: str) -> bytes | None:
 
 
 def delete_student_files(student) -> None:
-    """Delete all enrollment document files for a student from Cloudinary."""
+    """Delete all enrollment document files for a student from Cloudinary (photo is kept)."""
     fields = [
-        student.student_photo_path,
         student.grades_path,
         student.voucher_path,
         student.psa_birth_cert_path,
@@ -121,8 +120,7 @@ def delete_student_files(student) -> None:
 
 
 def clear_student_file_fields(student) -> None:
-    """Clear all enrollment document file fields on the student model (DB only)."""
-    student.student_photo_path = None
+    """Clear all enrollment document file fields on the student model (photo is kept)."""
     student.grades_path = None
     student.voucher_path = None
     student.psa_birth_cert_path = None
