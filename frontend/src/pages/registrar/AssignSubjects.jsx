@@ -41,6 +41,7 @@ export default function AssignSubjects() {
   const [savingCredits, setSavingCredits] = useState(false);
   const [studentHistory, setStudentHistory] = useState([]);
   const [expandedRecord, setExpandedRecord] = useState(null);
+  const [subjectGradeOverride, setSubjectGradeOverride] = useState(null);
 
   const subjectsPanelRef = useRef(null);
 
@@ -115,6 +116,7 @@ export default function AssignSubjects() {
       setTransfereeSubjectsDraft(student.transferee_subjects || []);
       setStudentHistory(historyRes.data);
       setExpandedRecord(null);
+      setSubjectGradeOverride(null);
 
       // Get subjects matching student's strand, grade, and semester
       const params = {};
@@ -131,11 +133,11 @@ export default function AssignSubjects() {
     }
   };
 
-  const refreshSubjects = async () => {
+  const refreshSubjects = async (gradeOverride) => {
     if (!studentDetail) return;
     const params = {};
     if (studentDetail.strand) params.strand = studentDetail.strand;
-    if (studentDetail.grade_level_to_enroll) params.grade_level = studentDetail.grade_level_to_enroll;
+    params.grade_level = gradeOverride ?? subjectGradeOverride ?? studentDetail.grade_level_to_enroll;
     if (studentDetail.semester) params.semester = studentDetail.semester;
     const [subjectsRes, enrolledRes] = await Promise.all([
       getSubjects(params),
@@ -383,9 +385,28 @@ export default function AssignSubjects() {
             </div>
           )}
 
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Available Subjects
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Available Subjects</h2>
+            {studentDetail && studentDetail.grade_level_to_enroll === 'Grade 12' && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                {['Grade 11', 'Grade 12'].map((g) => {
+                  const active = (subjectGradeOverride ?? studentDetail.grade_level_to_enroll) === g;
+                  return (
+                    <button
+                      key={g}
+                      onClick={async () => {
+                        setSubjectGradeOverride(g);
+                        await refreshSubjects(g);
+                      }}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${active ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {!selectedStudent ? (
             <div className="text-center py-12 text-gray-400">

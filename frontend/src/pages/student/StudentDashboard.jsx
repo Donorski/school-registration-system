@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, BookOpen, Hash, Clock, Edit, Eye, CheckCircle, Upload, Loader2, AlertCircle, Printer, X, History, ChevronDown, ChevronUp, ArrowRight, Calendar, MapPin, Info, Megaphone, Pin, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
-import { getMyProfile, getMySubjects, uploadPaymentReceipt, submitPaymentWithoutReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile } from '../../services/api';
+import { getMyProfile, getMySubjects, uploadPaymentReceipt, submitPaymentWithoutReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile, uploadPhoto } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -513,6 +513,7 @@ export default function StudentDashboard() {
   const [expandedRecord, setExpandedRecord] = useState(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const receiptInputRef = useRef(null);
+  const photoInputRef = useRef(null);
   const printRef = useRef(null);
 
   const handlePrint = useReactToPrint({
@@ -588,6 +589,26 @@ export default function StudentDashboard() {
       toast.error(getErrorMessage(err));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type)) { toast.error('Only JPG and PNG files are allowed'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be less than 5MB'); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await uploadPhoto(formData);
+      setProfile(res.data);
+      toast.success('Profile photo updated');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -738,17 +759,23 @@ export default function StudentDashboard() {
             </Link>
           </div>
           <div className="flex flex-col items-center mb-4">
-            {profile?.student_photo_path ? (
-              <img
-                src={profile.student_photo_path}
-                alt="ID Photo"
-                className="w-20 h-20 rounded-full object-cover border-2 border-emerald-200 mb-3"
-              />
-            ) : (
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
-                <User size={36} className="text-emerald-600" />
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png" onChange={handlePhotoUpload} className="hidden" />
+            <button type="button" onClick={() => photoInputRef.current?.click()} disabled={uploading} className="relative group mb-3 rounded-full focus:outline-none">
+              {profile?.student_photo_path ? (
+                <img
+                  src={profile.student_photo_path}
+                  alt="ID Photo"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-emerald-200"
+                />
+              ) : (
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <User size={36} className="text-emerald-600" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploading ? <Loader2 size={18} className="animate-spin text-white" /> : <Camera size={18} className="text-white" />}
               </div>
-            )}
+            </button>
             <h3 className="font-semibold text-gray-800">
               {profile?.first_name} {profile?.last_name}
             </h3>
