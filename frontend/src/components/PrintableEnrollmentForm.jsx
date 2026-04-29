@@ -23,11 +23,11 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
         fontFamily: 'Arial, Helvetica, sans-serif',
         color: '#111',
         background: '#fff',
-        width: '220mm',
-        height: '110mm',
-        padding: '5mm 7mm',
+        width: '190mm',
+        minHeight: '257mm',
+        padding: '8mm 10mm',
         boxSizing: 'border-box',
-        fontSize: '7.5pt',
+        fontSize: '10pt',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -69,13 +69,13 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
           style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }}
         />
         <div>
-          <div style={{ fontSize: '9.5pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.2 }}>
+          <div style={{ fontSize: '13pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.2 }}>
             Database Technology College
           </div>
-          <div style={{ fontSize: '7pt', color: '#555' }}>Student Registration System — Enrollment Slip</div>
+          <div style={{ fontSize: '9pt', color: '#555' }}>Student Registration System — Enrollment Slip</div>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: '6.5pt', color: '#777' }}>
-          <div>Issued: {today}</div>
+          <div style={{ fontSize: '8.5pt' }}>Issued: {today}</div>
         </div>
       </div>
 
@@ -204,10 +204,10 @@ export default PrintableEnrollmentForm;
 function InfoCell({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: '6pt', color: '#16a34a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+      <div style={{ fontSize: '8pt', color: '#16a34a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
         {label}
       </div>
-      <div style={{ fontSize: '7.5pt', fontWeight: '500', borderBottom: '0.5px dotted #86efac', paddingBottom: '1px' }}>
+      <div style={{ fontSize: '10pt', fontWeight: '500', borderBottom: '0.5px dotted #86efac', paddingBottom: '1px' }}>
         {value}
       </div>
     </div>

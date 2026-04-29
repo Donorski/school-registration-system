@@ -520,7 +520,7 @@ export default function StudentDashboard() {
     contentRef: printRef,
     documentTitle: `Enrollment-${profile?.student_number || 'DBTC'}`,
     pageStyle: `
-      @page { size: 220mm 110mm; margin: 0; }
+      @page { size: A4 portrait; margin: 10mm; }
       body { margin: 0; }
     `,
   });
