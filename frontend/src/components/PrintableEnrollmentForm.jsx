@@ -23,11 +23,11 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
         fontFamily: 'Arial, Helvetica, sans-serif',
         color: '#111',
         background: '#fff',
-        width: '190mm',
-        minHeight: '257mm',
-        padding: '8mm 10mm',
+        width: '194mm',
+        height: '132mm',
+        padding: '6mm 8mm',
         boxSizing: 'border-box',
-        fontSize: '10pt',
+        fontSize: '9pt',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -69,10 +69,10 @@ const PrintableEnrollmentForm = forwardRef(function PrintableEnrollmentForm({ pr
           style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }}
         />
         <div>
-          <div style={{ fontSize: '13pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.2 }}>
+          <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.2 }}>
             Database Technology College
           </div>
-          <div style={{ fontSize: '9pt', color: '#555' }}>Student Registration System — Enrollment Slip</div>
+          <div style={{ fontSize: '8pt', color: '#555' }}>Student Registration System — Enrollment Slip</div>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: '6.5pt', color: '#777' }}>
           <div style={{ fontSize: '8.5pt' }}>Issued: {today}</div>
