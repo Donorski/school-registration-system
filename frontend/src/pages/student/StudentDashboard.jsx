@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import PrintableEnrollmentForm from '../../components/PrintableEnrollmentForm';
+import BEEFEnrollmentForm from '../../components/BEEFEnrollmentForm';
 import { getMyProfile, getMySubjects, uploadPaymentReceipt, submitPaymentWithoutReceipt, getMyEnrollmentHistory, getEnrollmentStatus, getAnnouncements, updateMyProfile, uploadPhoto } from '../../services/api';
 import { statusColor, getErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../hooks/useAuth';
@@ -978,7 +978,7 @@ export default function StudentDashboard() {
 
             {/* Paper */}
             <div className="bg-white shadow-2xl rounded-b-xl overflow-hidden">
-              <PrintableEnrollmentForm ref={printRef} profile={profile} subjects={subjects} />
+              <BEEFEnrollmentForm ref={printRef} profile={profile} />
             </div>
 
           </div>

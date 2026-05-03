@@ -461,6 +461,34 @@ export default function StudentProfile() {
   const selectClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none ${isLocked ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`;
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
+  // BEEF-style input (underline only, label below)
+  const bfi = `w-full px-1 py-1 border-b border-gray-400 text-sm focus:border-emerald-500 outline-none uppercase bg-transparent ${isLocked ? 'text-gray-500 cursor-not-allowed' : ''}`;
+  const bfs = `w-full px-1 py-1 border-b border-gray-400 text-sm focus:border-emerald-500 outline-none bg-transparent ${isLocked ? 'text-gray-500 cursor-not-allowed' : ''}`;
+  const bfDisabled = 'w-full px-1 py-1 border-b border-gray-300 text-sm outline-none uppercase bg-transparent text-gray-400 cursor-not-allowed';
+
+  // BEEF cell wrapper — label sits below the field
+  const BEEFCell = ({ label, required, children, grow = 1, last = false }) => (
+    <div className={`p-3 ${!last ? 'border-r border-gray-300' : ''} flex-${grow === 1 ? '1' : `[${grow}]`} min-w-0`}
+      style={{ flex: grow }}>
+      {children}
+      <div className="text-xs text-gray-400 mt-1 font-medium">
+        {label}{required && <span className="text-red-400"> *</span>}
+      </div>
+    </div>
+  );
+
+  const BEEFHeader = ({ children }) => (
+    <div className="bg-gray-200 text-center font-bold text-sm py-2 uppercase tracking-wide text-gray-700 border-b border-gray-300">
+      {children}
+    </div>
+  );
+
+  const BEEFRow = ({ children, last = false }) => (
+    <div className={`flex ${!last ? 'border-b border-gray-300' : ''}`}>
+      {children}
+    </div>
+  );
+
   // ── File upload card helper ──────────────────────────────────────────
   const FileCard = ({ label, path, uploading, inputRef, onUpload, accept, badge, badgeColor = 'emerald' }) => (
     <div className={`bg-white rounded-xl shadow-sm border p-6 ${badge ? `border-${badgeColor}-200` : ''}`}>
@@ -656,62 +684,65 @@ export default function StudentProfile() {
 
       {/* ── Step 2: School Info ─────────────────────────────────────── */}
       {step === 2 && (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Grade Level &amp; School Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>School Year</label>
-              <input {...register('school_year')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} placeholder="Set by admin" />
-            </div>
-            <div>
-              <label className={labelClass}>Semester <span className="text-red-500">*</span></label>
-              <input {...register('semester')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} placeholder="Set by admin" />
-            </div>
-            <div>
-              <label className={labelClass}>LRN <span className="text-red-500">*</span></label>
-              <input {...register('lrn')} disabled={isLocked} className={inputClass} placeholder="Learner Reference Number" />
-            </div>
-            <div>
-              <label className={labelClass}>Grade Level to Enroll <span className="text-red-500">*</span></label>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <BEEFHeader>School Information</BEEFHeader>
+
+          {/* Row 1: School Year | Semester | LRN */}
+          <BEEFRow>
+            <BEEFCell label="School Year" grow={1}>
+              <input {...register('school_year')} disabled className={bfDisabled} placeholder="Set by admin" />
+            </BEEFCell>
+            <BEEFCell label="Semester" grow={1}>
+              <input {...register('semester')} disabled className={bfDisabled} placeholder="Set by admin" />
+            </BEEFCell>
+            <BEEFCell label="LRN" required grow={1} last>
+              <input {...register('lrn')} disabled={isLocked} className={bfi} placeholder="Learner Reference Number" />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row 2: Grade Level | Last Grade | Last S.Y. */}
+          <BEEFRow>
+            <BEEFCell label="Grade Level to Enroll" required grow={1}>
               {enrollmentType === 'NEW_ENROLLEE' ? (
-                <input value="Grade 11" disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+                <input value="Grade 11" disabled className={bfDisabled} />
               ) : (
-                <select {...register('grade_level_to_enroll')} disabled={isLocked} className={selectClass}>
+                <select {...register('grade_level_to_enroll')} disabled={isLocked} className={bfs}>
                   <option value="">Select</option>
                   <option value="Grade 11">Grade 11</option>
                   <option value="Grade 12">Grade 12</option>
                 </select>
               )}
-            </div>
-            <div>
-              <label className={labelClass}>Last Grade Completed</label>
+            </BEEFCell>
+            <BEEFCell label="Last Grade Level Completed" grow={1}>
               {enrollmentType === 'NEW_ENROLLEE' ? (
-                <input value="Grade 10" disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+                <input value="Grade 10" disabled className={bfDisabled} />
               ) : (
-                <input {...register('last_grade_level_completed')} disabled={isLocked} className={inputClass} />
+                <input {...register('last_grade_level_completed')} disabled={isLocked} className={bfi} />
               )}
-            </div>
-            <div>
-              <label className={labelClass}>Last School Year Completed</label>
-              <input {...register('last_school_year_completed')} disabled={isLocked} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>
-                Last School Attended {enrollmentType === 'TRANSFEREE' && <span className="text-red-500">*</span>}
-              </label>
-              <input {...register('last_school_attended')} disabled={isLocked} className={inputClass} placeholder={enrollmentType === 'TRANSFEREE' ? 'Required for transferees' : ''} />
-            </div>
-            <div>
-              <label className={labelClass}>School Type</label>
-              <select {...register('school_type')} disabled={isLocked} className={selectClass}>
+            </BEEFCell>
+            <BEEFCell label="Last School Year Completed" grow={1} last>
+              <input {...register('last_school_year_completed')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row 3: Last School Attended | School Type */}
+          <BEEFRow>
+            <BEEFCell label={enrollmentType === 'TRANSFEREE' ? 'Last School Attended *' : 'Last School Attended'} grow={2}>
+              <input {...register('last_school_attended')} disabled={isLocked} className={bfi} placeholder={enrollmentType === 'TRANSFEREE' ? 'Required for transferees' : ''} />
+            </BEEFCell>
+            <BEEFCell label="School Type" grow={1} last>
+              <select {...register('school_type')} disabled={isLocked} className={bfs}>
                 <option value="">Select</option>
                 <option value="PUBLIC">Public</option>
                 <option value="PRIVATE">Private</option>
               </select>
-            </div>
-            <div>
-              <label className={labelClass}>Strand <span className="text-red-500">*</span></label>
-              <select {...register('strand')} disabled={isLocked} className={selectClass}>
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row 4: Strand | School to Enroll In */}
+          <BEEFRow>
+            <BEEFCell label="Strand" required grow={1}>
+              <select {...register('strand')} disabled={isLocked} className={bfs}>
                 <option value="">Select</option>
                 <option value="ABM">ABM</option>
                 <option value="HUMSS">HUMSS</option>
@@ -721,161 +752,247 @@ export default function StudentProfile() {
                 <option value="EPAS">EPAS</option>
                 <option value="PROG">PROG</option>
               </select>
+            </BEEFCell>
+            <BEEFCell label="School to Enroll In" grow={2} last>
+              <input {...register('school_to_enroll_in')} disabled className={bfDisabled} />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row 5: School Address */}
+          <BEEFRow last>
+            <BEEFCell label="School Address" grow={1} last>
+              <input {...register('school_address')} disabled className={bfDisabled} />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Transferee notice */}
+          {enrollmentType === 'TRANSFEREE' && !isLocked && (
+            <div className="m-4 p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+              <h3 className="text-sm font-semibold text-amber-800">Transferee Requirements</h3>
+              <p className="text-xs text-amber-700">As a transferee, please make sure to provide the following:</p>
+              <ul className="text-xs text-amber-700 list-disc list-inside space-y-1">
+                <li><strong>Previous School Subjects</strong> (required) — click the button below to add them</li>
+                <li><strong>Last School Attended</strong> (required) — fill in above</li>
+                <li><strong>Transfer Credential / Form 137</strong> — upload in Step 6</li>
+                <li><strong>Good Moral Certificate</strong> — upload in Step 6</li>
+              </ul>
+              <div className="pt-1 flex items-center gap-3">
+                <button type="button" onClick={() => setShowTransfereeModal(true)} className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                  <BookOpen size={15} />
+                  {transfereeSubjects.filter(s => s.subject_name?.trim()).length > 0 ? 'Edit Previous School Subjects' : 'Add Previous School Subjects'}
+                </button>
+                {transfereeSubjects.filter(s => s.subject_name?.trim()).length > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium">
+                    <CheckCircle size={12} />
+                    {transfereeSubjects.filter(s => s.subject_name?.trim()).length} subject{transfereeSubjects.filter(s => s.subject_name?.trim()).length !== 1 ? 's' : ''} added
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-600 font-medium">No subjects added yet — required before submitting</span>
+                )}
+              </div>
             </div>
-            <div>
-              <label className={labelClass}>School to Enroll In</label>
-              <input {...register('school_to_enroll_in')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+          )}
+
+          {enrollmentType === 'RE_ENROLLEE' && !isLocked && !lookupDone && (
+            <div className="m-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">Returning Student? Load your previous records</h3>
+              <p className="text-xs text-blue-600 mb-3">Enter your student number from your previous enrollment to auto-fill your information.</p>
+              <div className="flex gap-2">
+                <input type="text" value={lookupId} onChange={(e) => setLookupId(e.target.value)} placeholder="e.g. DBTC-1-26"
+                  className="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLookup(); } }} />
+                <button type="button" onClick={handleLookup} disabled={lookingUp} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50">
+                  {lookingUp ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                  {lookingUp ? 'Looking up...' : 'Look Up'}
+                </button>
+              </div>
             </div>
-            <div className="md:col-span-2">
-              <label className={labelClass}>School Address</label>
-              <input {...register('school_address')} disabled className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+          )}
+
+          {lookupDone && (
+            <div className="m-4 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+              <CheckCircle size={18} className="shrink-0" />
+              <p>Previous records loaded from <strong>{lookupId}</strong>. Please review and update anything that has changed.</p>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* ── Step 3: Personal Info ───────────────────────────────────── */}
       {step === 3 && (
-        <div className="space-y-6">
-          {/* ID Photo */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">ID Photo <span className="text-red-500">*</span></h2>
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                {photoPath ? (
-                  <img src={photoPath} alt="Student ID Photo" className="w-32 h-32 rounded-xl object-cover border-2 border-gray-200" />
-                ) : (
-                  <div className="w-32 h-32 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
-                    <User size={36} /><span className="text-xs mt-1">No photo</span>
-                  </div>
-                )}
-                {uploadingPhoto && (
-                  <div className="absolute inset-0 bg-white/70 rounded-xl flex items-center justify-center">
-                    <Loader2 size={24} className="animate-spin text-emerald-600" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Upload a 2x2 ID photo (JPG or PNG, max 5MB)</p>
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handlePhotoUpload} className="hidden" />
-                {!isLocked && (
-                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50">
-                    <Camera size={16} />
-                    {photoPath ? 'Change Photo' : 'Upload Photo'}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <BEEFHeader>Learner Information</BEEFHeader>
 
-          {/* Personal Fields */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div><label className={labelClass}>Last Name <span className="text-red-500">*</span></label><input {...register('last_name')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>First Name <span className="text-red-500">*</span></label><input {...register('first_name')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>Middle Name</label><input {...register('middle_name')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>Suffix</label><input {...register('suffix')} disabled={isLocked} className={inputClass} placeholder="Jr., III, etc." /></div>
-              <div><label className={labelClass}>Birthday <span className="text-red-500">*</span></label><input type="date" {...register('birthday')} disabled={isLocked} className={inputClass} /></div>
-              <div>
-                <label className={labelClass}>Sex <span className="text-red-500">*</span></label>
-                <select {...register('sex')} disabled={isLocked} className={selectClass}>
-                  <option value="">Select</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
+          {/* Row: PSA Birth Cert No. | ID Photo */}
+          <BEEFRow>
+            <BEEFCell label="PSA Birth Certificate No." grow={2}>
+              <input {...register('psa_birth_certificate_no')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="ID Photo (2×2, JPG/PNG, max 5MB)" required grow={1} last>
+              <div className="flex items-center gap-3">
+                <div className="relative shrink-0">
+                  {photoPath ? (
+                    <img src={photoPath} alt="ID Photo" className="w-16 h-16 rounded-lg object-cover border border-gray-300" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
+                      <User size={24} /><span className="text-xs mt-0.5">No photo</span>
+                    </div>
+                  )}
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 bg-white/70 rounded-lg flex items-center justify-center">
+                      <Loader2 size={18} className="animate-spin text-emerald-600" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handlePhotoUpload} className="hidden" />
+                  {!isLocked && (
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                      <Camera size={13} />
+                      {photoPath ? 'Change' : 'Upload'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div><label className={labelClass}>Mother Tongue</label><input {...register('mother_tongue')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>Religion</label><input {...register('religion')} disabled={isLocked} className={inputClass} /></div>
-              <div><label className={labelClass}>PSA Birth Certificate No.</label><input {...register('psa_birth_certificate_no')} disabled={isLocked} className={inputClass} /></div>
-            </div>
-          </div>
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row: Last Name | Birthdate | Sex */}
+          <BEEFRow>
+            <BEEFCell label="Last Name" required grow={2}>
+              <input {...register('last_name')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Birthdate (mm/dd/yyyy)" required grow={1}>
+              <input type="date" {...register('birthday')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Sex" required grow={1} last>
+              <select {...register('sex')} disabled={isLocked} className={bfs}>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row: First Name | Mother Tongue | Religion */}
+          <BEEFRow>
+            <BEEFCell label="First Name" required grow={2}>
+              <input {...register('first_name')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Mother Tongue" grow={1}>
+              <input {...register('mother_tongue')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Religion" grow={1} last>
+              <input {...register('religion')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row: Middle Name | Suffix */}
+          <BEEFRow last>
+            <BEEFCell label="Middle Name" grow={2}>
+              <input {...register('middle_name')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Extension Name (e.g. Jr., III)" grow={1} last>
+              <input {...register('suffix')} disabled={isLocked} className={bfi} placeholder="Jr., III, etc." />
+            </BEEFCell>
+          </BEEFRow>
         </div>
       )}
 
       {/* ── Step 4: Address ─────────────────────────────────────────── */}
       {step === 4 && (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">Student Address</h2>
-          <p className="text-sm text-gray-500 mb-4">Select your region first, then province, then city/municipality.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Region */}
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={selectedRegion}
-                onChange={handleRegionChange}
-                disabled={isLocked}
-                className={selectClass}
-              >
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <BEEFHeader>Current Address</BEEFHeader>
+          <div className="px-4 pt-2 pb-1">
+            <p className="text-xs text-gray-400">Select your region first, then province, then city/municipality.</p>
+          </div>
+
+          {/* Row: House No. / Street | Barangay */}
+          <BEEFRow>
+            <BEEFCell label="House No. / Street" grow={2}>
+              <input {...register('house_no_street')} disabled={isLocked} className={bfi} />
+            </BEEFCell>
+            <BEEFCell label="Barangay" grow={2} last>
+              <input {...register('barangay')} disabled={isLocked} className={bfi} placeholder="Enter barangay" />
+            </BEEFCell>
+          </BEEFRow>
+
+          {/* Row: Region | Province | City/Municipality */}
+          <BEEFRow last>
+            <BEEFCell label="Region" grow={1}>
+              <select value={selectedRegion} onChange={handleRegionChange} disabled={isLocked} className={bfs}>
                 <option value="">Select Region</option>
                 {phRegions.map(r => (
                   <option key={r.key} value={r.key}>{r.name} — {r.long}</option>
                 ))}
               </select>
-              {/* hidden field for form value */}
               <input type="hidden" {...register('region')} />
-            </div>
-
-            {/* Province */}
-            <div>
-              <label className={labelClass}>Province</label>
-              <select
-                value={selectedProvince}
-                onChange={handleProvinceChange}
-                disabled={isLocked || !selectedRegion}
-                className={selectClass}
-              >
+            </BEEFCell>
+            <BEEFCell label="Province" grow={1}>
+              <select value={selectedProvince} onChange={handleProvinceChange} disabled={isLocked || !selectedRegion} className={bfs}>
                 <option value="">{selectedRegion ? 'Select Province' : 'Select a region first'}</option>
                 {filteredProvinces.map(p => (
                   <option key={p.key} value={p.key}>{p.name}</option>
                 ))}
               </select>
               <input type="hidden" {...register('province')} />
-            </div>
-
-            {/* City / Municipality */}
-            <div>
-              <label className={labelClass}>City / Municipality</label>
-              <select
-                value={watch('city_municipality') || ''}
-                onChange={handleCityChange}
-                disabled={isLocked || !selectedProvince}
-                className={selectClass}
-              >
+            </BEEFCell>
+            <BEEFCell label="City / Municipality" grow={1} last>
+              <select value={watch('city_municipality') || ''} onChange={handleCityChange} disabled={isLocked || !selectedProvince} className={bfs}>
                 <option value="">{selectedProvince ? 'Select City / Municipality' : 'Select a province first'}</option>
                 {filteredCities.map(c => (
                   <option key={c.name} value={c.name}>{c.name}</option>
                 ))}
               </select>
               <input type="hidden" {...register('city_municipality')} />
-            </div>
-
-            {/* Barangay — free text (too many to bundle) */}
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <input {...register('barangay')} disabled={isLocked} className={inputClass} placeholder="Enter barangay" />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className={labelClass}>House No. / Street</label>
-              <input {...register('house_no_street')} disabled={isLocked} className={inputClass} />
-            </div>
-          </div>
+            </BEEFCell>
+          </BEEFRow>
         </div>
       )}
 
       {/* ── Step 5: Parent / Guardian ───────────────────────────────── */}
       {step === 5 && (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Parent / Guardian Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className={labelClass}>Father's Full Name</label><input {...register('father_full_name')} disabled={isLocked} className={inputClass} /></div>
-            <div><label className={labelClass}>Father's Contact No.</label><input {...register('father_contact')} disabled={isLocked} className={inputClass} /></div>
-            <div><label className={labelClass}>Mother's Full Name</label><input {...register('mother_full_name')} disabled={isLocked} className={inputClass} /></div>
-            <div><label className={labelClass}>Mother's Contact No.</label><input {...register('mother_contact')} disabled={isLocked} className={inputClass} /></div>
-            <div><label className={labelClass}>Guardian's Full Name</label><input {...register('guardian_full_name')} disabled={isLocked} className={inputClass} /></div>
-            <div><label className={labelClass}>Guardian's Contact No.</label><input {...register('guardian_contact')} disabled={isLocked} className={inputClass} /></div>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <BEEFHeader>Parent's / Guardian's Information</BEEFHeader>
+
+          {/* Father */}
+          <div className="border-b border-gray-300">
+            <div className="px-3 pt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Father's Name</div>
+            <BEEFRow last>
+              <BEEFCell label="Full Name" grow={3}>
+                <input {...register('father_full_name')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+              <BEEFCell label="Contact Number" grow={1} last>
+                <input {...register('father_contact')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+            </BEEFRow>
+          </div>
+
+          {/* Mother */}
+          <div className="border-b border-gray-300">
+            <div className="px-3 pt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mother's Maiden Name</div>
+            <BEEFRow last>
+              <BEEFCell label="Full Name" grow={3}>
+                <input {...register('mother_full_name')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+              <BEEFCell label="Contact Number" grow={1} last>
+                <input {...register('mother_contact')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+            </BEEFRow>
+          </div>
+
+          {/* Guardian */}
+          <div>
+            <div className="px-3 pt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Legal Guardian's Name</div>
+            <BEEFRow last>
+              <BEEFCell label="Full Name" grow={3}>
+                <input {...register('guardian_full_name')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+              <BEEFCell label="Contact Number" grow={1} last>
+                <input {...register('guardian_contact')} disabled={isLocked} className={bfi} />
+              </BEEFCell>
+            </BEEFRow>
           </div>
         </div>
       )}
