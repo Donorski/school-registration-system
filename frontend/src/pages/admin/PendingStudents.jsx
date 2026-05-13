@@ -118,7 +118,7 @@ export default function PendingStudents() {
                           <button onClick={() => handleApprove(s.id)} className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg" title="Approve">
                             <CheckCircle size={16} />
                           </button>
-                          <button onClick={() => openDenyModal(s)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Deny">
+                          <button onClick={() => openDenyModal(s)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Re-Evaluate">
                             <XCircle size={16} />
                           </button>
                         </div>
@@ -148,9 +148,9 @@ export default function PendingStudents() {
       {denyTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
-            <h3 className="text-base font-semibold text-gray-800 mb-1">Deny Application</h3>
+            <h3 className="text-base font-semibold text-gray-800 mb-1">Re-Evaluate Application</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Denying <strong>{denyTarget.first_name} {denyTarget.last_name}</strong>. Optionally provide a reason so the student knows what to correct.
+              Re-evaluating <strong>{denyTarget.first_name} {denyTarget.last_name}</strong>. Optionally provide a reason so the student knows what to correct.
             </p>
             <textarea
               value={denyReason}
@@ -174,7 +174,7 @@ export default function PendingStudents() {
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50"
               >
                 {denying ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
-                {denying ? 'Denying...' : 'Confirm Deny'}
+                {denying ? 'Processing...' : 'Confirm Re-Evaluate'}
               </button>
             </div>
           </div>

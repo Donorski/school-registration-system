@@ -137,6 +137,10 @@ export default function Subjects() {
           <option value="EIM">EIM</option>
           <option value="EPAS">EPAS</option>
           <option value="PROG">PROG</option>
+          <option value="BEC">BEC - Business &amp; Entrepreneurship</option>
+          <option value="ASHC">ASHC - Arts, Social Science &amp; Humanities</option>
+          <option value="ICTC">ICTC - ICT &amp; Computer Programming</option>
+          <option value="ITEC">ITEC - Industrial Technologies</option>
         </select>
         <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
           <option value="">All Grades</option>

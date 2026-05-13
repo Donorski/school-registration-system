@@ -88,7 +88,14 @@
       "Bash(python3 -c \"import cloudinary; print\\(cloudinary.__version__\\)\")",
       "WebFetch(domain:claude.ai)",
       "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system -name *.jsx -o -name *.tsx)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(psql --version)",
+      "Bash(psql:*)",
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/frontend/src -name *constant* -o -name *config* -o -name *enum*)",
+      "Bash(find /media/donorski/Data/projects/DONOR BACK UP/desktop/school-registration-system/backend -name *constant* -o -name *config* -o -name *enum*)",
+      "Read(//home/donorski/Downloads/**)",
+      "Bash(python3:*)",
+      "Bash(python seed_curriculum.py)"
     ]
   }
 }

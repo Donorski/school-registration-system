@@ -277,6 +277,112 @@ STRAND_SUBJECTS = {
             ],
         },
     },
+    # ---------------------------------------------------------------------------
+    # New clusters (Academic Track & TechPro Track)
+    # All subjects placed in 2nd Semester per grade level
+    # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Academic Track — Business and Entrepreneurship Cluster
+    # ---------------------------------------------------------------------------
+    "BEC": {
+        "Specialized": {
+            ("Grade 11", "1st Semester"): [
+                "Effective Communication / Mabisang Komunikasyon",
+                "General Science",
+                "General Mathematics",
+                "Pag-aaral ng Kasaysayan at Lipunang Pilipino",
+                "Life and Career Skills",
+                "Elective 1: Introduction to Organization and Management",
+                "Elective 2: Filipino 1: Wika at Komunikasyon sa Akademikong Filipino",
+            ],
+            ("Grade 11", "2nd Semester"): [
+                "Elective 3: Philippine Governance (Philippine Politics and Governance)",
+                "Elective 4: Business 1 - Basic Accounting",
+            ],
+            ("Grade 12", "1st Semester"): [
+                "Elective 5: Business 2 - Business Finance and Income Taxation",
+                "Elective 6: Business 3 - Business Economics",
+                "Elective 7: Contemporary Marketing",
+                "Elective 8: Entrepreneurship",
+                "Elective 9: Arts 2 - Creative Industries, Music, Dance and Theater",
+            ],
+            ("Grade 12", "2nd Semester"): [
+                "Work Immersion (320 hours)",
+            ],
+        },
+    },
+    # ---------------------------------------------------------------------------
+    # Academic Track — Arts, Social Science & Humanities Cluster
+    # ---------------------------------------------------------------------------
+    "ASHC": {
+        "Specialized": {
+            ("Grade 11", "2nd Semester"): [
+                "Effective Communication / Mabisang Komunikasyon",
+                "General Science",
+                "General Mathematics",
+                "Pag-aaral ng Kasaysayan at Lipunang Pilipino",
+                "Life and Career Skills",
+                "Introduction to Philosophy",
+                "Filipino 1: Wika at Komunikasyon sa Akademikong Filipino",
+                "Philippine Governance (Philippine Politics and Governance)",
+                "Filipino Identity through Arts",
+            ],
+            ("Grade 12", "2nd Semester"): [
+                "Citizenship and Civic Engagement",
+                "Social Sciences Theory and Practices",
+                "Contemporary Literature 1",
+                "Creative Composition 1",
+                "Arts 2: Creative Industries, Music, Dance and Theater",
+                "Work Immersion (320 hours)",
+            ],
+        },
+    },
+    # ---------------------------------------------------------------------------
+    # TechPro Track — ICT Support and Computer Technologies Cluster
+    # ---------------------------------------------------------------------------
+    "ICTC": {
+        "Specialized": {
+            ("Grade 11", "1st Semester"): [
+                "Effective Communication / Mabisang Komunikasyon",
+                "General Science",
+                "General Mathematics",
+                "Pag-aaral ng Kasaysayan at Lipunang Pilipino",
+                "Life and Career Skills",
+            ],
+            ("Grade 11", "2nd Semester"): [
+                "Elective 1: Computer Programming",
+            ],
+            ("Grade 12", "1st Semester"): [
+                "Elective 2: Computer Systems Servicing NC II",
+            ],
+            ("Grade 12", "2nd Semester"): [
+                "Work Immersion (320 hours)",
+            ],
+        },
+    },
+    # ---------------------------------------------------------------------------
+    # TechPro Track — Industrial Technologies Cluster
+    # ---------------------------------------------------------------------------
+    "ITEC": {
+        "Specialized": {
+            ("Grade 11", "1st Semester"): [
+                "Effective Communication / Mabisang Komunikasyon",
+                "General Science",
+                "General Mathematics",
+                "Pag-aaral ng Kasaysayan at Lipunang Pilipino",
+                "Life and Career Skills",
+            ],
+            ("Grade 11", "2nd Semester"): [
+                "Elective 1: Electronics Product Assembly and Servicing NC II",
+            ],
+            ("Grade 12", "1st Semester"): [
+                "Elective 2: Electrical Installation and Maintenance NC II",
+            ],
+            ("Grade 12", "2nd Semester"): [
+                "Work Immersion (320 hours)",
+            ],
+        },
+    },
 }
 
 GRADE_SHORT = {"Grade 11": "11", "Grade 12": "12"}

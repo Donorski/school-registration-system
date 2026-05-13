@@ -6,12 +6,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import PageTransition from './components/PageTransition';
 import ComingSoon from './pages/ComingSoon';
 
-// ─── COMING SOON TOGGLE ───────────────────────────────────────────────────────
-// Set to `true` to show the Coming Soon page to all visitors.
-// Set to `false` to open the full application.
 const COMING_SOON = false;
-// ─────────────────────────────────────────────────────────────────────────────
-
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
